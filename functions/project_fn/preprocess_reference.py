@@ -38,7 +38,7 @@ def flip_or_rotate(tensor_list):
         flipped = []
         for tensor in tensor_list:
             if flip_dim < 0 or flip_dim >= len(tensor.get_shape().as_list()):
-                raise ValueError('dim must represent a valid dimension.')
+                raise ValueError("dim must represent a valid dimension.")
             flipped.append(tf.reverse_v2(tensor, [flip_dim]))
         return flipped
 
@@ -53,10 +53,10 @@ def flip_or_rotate(tensor_list):
                 rotated.append(tf.image.rot90(tensor, rotate_k))
         return rotated
 
-    if FLAGS.img_flip and FLAGS.job == 'train':
+    if FLAGS.img_flip and FLAGS.phase == "train":
         is_flipped = tf.less_equal(tf.random_uniform([]), flip_prob)
         return tf.cond(is_flipped, flip, lambda: tensor_list)
-    elif FLAGS.img_rotate and FLAGS.job == 'train':
+    elif FLAGS.img_rotate and FLAGS.phase == "train":
         is_rotate = tf.less_equal(tf.random_uniform([]), rotate_prob)
         return tf.cond(is_rotate, rotate, lambda: tensor_list)
     else:
@@ -89,7 +89,7 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
     image_rank = tf.rank(image)
     image_rank_assert = tf.Assert(
         tf.equal(image_rank, 3),
-        ['Wrong image tensor rank [Expected] [Actual]',
+        ["Wrong image tensor rank [Expected] [Actual]",
          3, image_rank])
     with tf.control_dependencies([image_rank_assert]):
         image -= pad_value
@@ -98,10 +98,10 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
     target_width_assert = tf.Assert(
         tf.greater_equal(
             target_width, width),
-        ['target_width must be >= width'])
+        ["target_width must be >= width"])
     target_height_assert = tf.Assert(
         tf.greater_equal(target_height, height),
-        ['target_height must be >= height'])
+        ["target_height must be >= height"])
     with tf.control_dependencies([target_width_assert]):
         after_padding_width = target_width - offset_width - width
     with tf.control_dependencies([target_height_assert]):
@@ -110,7 +110,7 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
         tf.logical_and(
             tf.greater_equal(after_padding_width, 0),
             tf.greater_equal(after_padding_height, 0)),
-        ['target size not possible with the given target offsets'])
+        ["target size not possible with the given target offsets"])
 
     height_params = tf.stack([offset_height, after_padding_height])
     width_params = tf.stack([offset_width, after_padding_width])
@@ -124,7 +124,7 @@ def pad_to_bounding_box(image, offset_height, offset_width, target_height,
 def _crop(image, offset_height, offset_width, crop_height, crop_width):
     """Crops the given image using the provided offsets and sizes.
 
-    Note that the method doesn't assume we know the input image size but it does
+    Note that the method doesn"t assume we know the input image size but it does
     assume we know the input image rank.
 
     Args:
@@ -138,19 +138,19 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
       The cropped (and resized) image.
 
     Raises:
-      ValueError: if `image` doesn't have rank of 3.
+      ValueError: if `image` doesn"t have rank of 3.
       InvalidArgumentError: if the rank is not 3 or if the image dimensions are
         less than the crop size.
     """
     original_shape = tf.shape(image)
 
     if len(image.get_shape().as_list()) != 3:
-        raise ValueError('input must have rank of 3')
+        raise ValueError("input must have rank of 3")
     original_channels = image.get_shape().as_list()[2]
 
     rank_assertion = tf.Assert(
         tf.equal(tf.rank(image), 3),
-        ['Rank of image must be equal to 3.'])
+        ["Rank of image must be equal to 3."])
     with tf.control_dependencies([rank_assertion]):
         cropped_shape = tf.stack([crop_height, crop_width, original_shape[2]])
 
@@ -158,7 +158,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
         tf.logical_and(
             tf.greater_equal(original_shape[0], crop_height),
             tf.greater_equal(original_shape[1], crop_width)),
-        ['Crop size greater than the image size.'])
+        ["Crop size greater than the image size."])
 
     offsets = tf.to_int32(tf.stack([offset_height, offset_width, 0]))
 
@@ -194,7 +194,7 @@ def random_crop(image_list, crop_height, crop_width):
         or the images are smaller than the crop dimensions.
     """
     if not image_list:
-        raise ValueError('Empty sharp_image_list.')
+        raise ValueError("Empty sharp_image_list.")
     image_list = [img for img in image_list if img != None]
 
     # Compute the rank assertions.
@@ -203,7 +203,7 @@ def random_crop(image_list, crop_height, crop_width):
         image_rank = tf.rank(image_list[i])
         rank_assert = tf.Assert(
             tf.equal(image_rank, 3),
-            ['Wrong rank for tensor  %s [expected] [actual]',
+            ["Wrong rank for tensor  %s [expected] [actual]",
              image_list[i].name, 3, image_rank])
         rank_assertions.append(rank_assert)
 
@@ -215,7 +215,7 @@ def random_crop(image_list, crop_height, crop_width):
         tf.logical_and(
             tf.greater_equal(image_height, crop_height),
             tf.greater_equal(image_width, crop_width)),
-        ['Crop size greater than the image size.'])
+        ["Crop size greater than the image size."])
 
     asserts = [rank_assertions[0], crop_size_assert]
 
@@ -229,11 +229,11 @@ def random_crop(image_list, crop_height, crop_width):
 
         height_assert = tf.Assert(
             tf.equal(height, image_height),
-            ['Wrong height for tensor %s [expected][actual]',
+            ["Wrong height for tensor %s [expected][actual]",
              image.name, height, image_height])
         width_assert = tf.Assert(
             tf.equal(width, image_width),
-            ['Wrong width for tensor %s [expected][actual]',
+            ["Wrong width for tensor %s [expected][actual]",
              image.name, width, image_width])
         asserts.extend([height_assert, width_assert])
 
@@ -257,7 +257,7 @@ def random_crop(image_list, crop_height, crop_width):
     elif len(out_list) == 1:
         return out_list[0], None
     else:
-        raise ValueError('This function is in developing. Check input of this function')
+        raise ValueError("This function is in developing. Check input of this function")
 
 
 def get_random_scale(min_scale_factor, max_scale_factor, step_size):
@@ -275,7 +275,7 @@ def get_random_scale(min_scale_factor, max_scale_factor, step_size):
       ValueError: min_scale_factor has unexpected value.
     """
     if min_scale_factor < 0 or min_scale_factor > max_scale_factor:
-        raise ValueError('Unexpected value of min_scale_factor.')
+        raise ValueError("Unexpected value of min_scale_factor.")
 
     if min_scale_factor == max_scale_factor:
         return tf.to_float(min_scale_factor)
@@ -339,7 +339,7 @@ def resolve_shape(tensor, rank=None, scope=None):
     Returns:
       original_shape: The full original_shape of the tensor.
     """
-    with tf.name_scope(scope, 'resolve_shape', [tensor]):
+    with tf.name_scope(scope, "resolve_shape", [tensor]):
         if rank is not None:
             shape = tensor.get_shape().with_rank(rank).as_list()
         else:
@@ -398,7 +398,7 @@ def resize_to_range(image,
     Raises:
       ValueError: If the image is not a 3D tensor.
     """
-    with tf.name_scope(scope, 'resize_to_range', [image]):
+    with tf.name_scope(scope, "resize_to_range", [image]):
         new_tensor_list = []
         min_size = tf.to_float(min_size)
         if max_size is not None:
@@ -484,7 +484,7 @@ def add_gaussian_noise(_image_):
 
 
 def get_shade_source():
-    shade_list = glob.glob('./shade_source/*.png')
+    shade_list = glob.glob("./shade_source/*.png")
     total_shade = []
     for i, shade_name in enumerate(shade_list):
         shade = tf.image.decode_png(tf.read_file(shade_name), channels=1)
@@ -538,7 +538,7 @@ def _additional_augmentation(_image):
 
 def additional_augmentation(image):
     image = tf.cast(image, tf.uint8)
-    if FLAGS.additional_augmentation and FLAGS.job == 'train':  # True for add "additional_augmentation" into graph
+    if FLAGS.additional_augmentation and FLAGS.phase == "train":  # True for add "additional_augmentation" into graph
         do_additional_augmentation = tf.less_equal(tf.random_uniform((), maxval=1.0),
                                                    FLAGS.prob_additional_augmentation)
 

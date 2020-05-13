@@ -35,19 +35,19 @@ MIN_CHECKPOINT_NODE_SIZE = 1024  # use lower value during testing
 
 # specific versions we can use to do process-wide replacement of tf.gradients
 def gradients_speed(ys, xs, grad_ys=None, **kwargs):
-    return gradients(ys, xs, grad_ys, checkpoints='speed', **kwargs)
+    return gradients(ys, xs, grad_ys, checkpoints="speed", **kwargs)
 
 
 def gradients_memory(ys, xs, grad_ys=None, **kwargs):
-    return gradients(ys, xs, grad_ys, checkpoints='memory', **kwargs)
+    return gradients(ys, xs, grad_ys, checkpoints="memory", **kwargs)
 
 
 def gradients_collection(ys, xs, grad_ys=None, **kwargs):
-    return gradients(ys, xs, grad_ys, checkpoints='collection', **kwargs)
+    return gradients(ys, xs, grad_ys, checkpoints="collection", **kwargs)
 
 
-def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
-    '''
+def gradients(ys, xs, grad_ys=None, checkpoints="collection", **kwargs):
+    """
     Authors: Tim Salimans & Yaroslav Bulatov
 
     memory efficient gradient implementation inspired by "Training Deep Nets with Sublinear Memory Cost"
@@ -56,18 +56,18 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
     ys,xs,grad_ys,kwargs are the arguments to standard tensorflow tf.gradients
     (https://www.tensorflow.org/versions/r0.12/api_docs/python/train.html#gradients)
 
-    'checkpoints' can either be
+    "checkpoints" can either be
         - a list consisting of tensors from the forward pass of the neural net
           that we should re-use when calculating the gradients in the backward pass
           all other tensors that do not appear in this list will be re-computed
         - a string specifying how this list should be determined. currently we support
-            - 'speed':  checkpoint all outputs of convolutions and matmuls. these ops are usually the most expensive,
+            - "speed":  checkpoint all outputs of convolutions and matmuls. these ops are usually the most expensive,
                         so checkpointing them maximizes the running speed
                         (this is a good option if nonlinearities, concats, batchnorms, etc are taking up a lot of memory)
-            - 'memory': try to minimize the memory usage
+            - "memory": try to minimize the memory usage
                         (currently using a very simple strategy that identifies a number of bottleneck tensors in the graph to checkpoint)
-            - 'collection': look for a tensorflow collection named 'checkpoints', which holds the tensors to checkpoint
-    '''
+            - "collection": look for a tensorflow collection named "checkpoints", which holds the tensors to checkpoint
+    """
 
     #    print("Calling memsaving gradients with", checkpoints)
     if not isinstance(ys, list):
@@ -89,27 +89,27 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
     # exclude ops with no inputs
     fwd_ops = [op for op in fwd_ops if op.inputs]
 
-    # don't recompute xs, remove variables
+    # don"t recompute xs, remove variables
     xs_ops = _to_ops(xs)
     fwd_ops = [op for op in fwd_ops if not op in xs_ops]
-    fwd_ops = [op for op in fwd_ops if not '/assign' in op.name]
-    fwd_ops = [op for op in fwd_ops if not '/Assign' in op.name]
-    fwd_ops = [op for op in fwd_ops if not '/read' in op.name]
+    fwd_ops = [op for op in fwd_ops if not "/assign" in op.name]
+    fwd_ops = [op for op in fwd_ops if not "/Assign" in op.name]
+    fwd_ops = [op for op in fwd_ops if not "/read" in op.name]
     ts_all = ge.filter_ts(fwd_ops, True)  # get the tensors
-    ts_all = [t for t in ts_all if '/read' not in t.name]
+    ts_all = [t for t in ts_all if "/read" not in t.name]
     ts_all = set(ts_all) - set(xs) - set(ys)
 
     # construct list of tensors to checkpoint during forward pass, if not
     # given as input
     if type(checkpoints) is not list:
-        if checkpoints == 'collection':
-            checkpoints = tf.get_collection('checkpoints')
+        if checkpoints == "collection":
+            checkpoints = tf.get_collection("checkpoints")
 
-        elif checkpoints == 'speed':
+        elif checkpoints == "speed":
             # checkpoint all expensive ops to maximize running speed
-            checkpoints = ge.filter_ts_from_regex(fwd_ops, 'conv2d|Conv|MatMul')
+            checkpoints = ge.filter_ts_from_regex(fwd_ops, "conv2d|Conv|MatMul")
 
-        elif checkpoints == 'memory':
+        elif checkpoints == "memory":
 
             # remove very small tensors and some weird ops
             def fixdims(t):  # tf.Dimension values are not compatible with int, convert manually
@@ -119,13 +119,13 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
                     return [0]  # unknown shape
 
             ts_all = [t for t in ts_all if np.prod(fixdims(t.shape)) > MIN_CHECKPOINT_NODE_SIZE]
-            ts_all = [t for t in ts_all if 'L2Loss' not in t.name]
-            ts_all = [t for t in ts_all if 'entropy' not in t.name]
-            ts_all = [t for t in ts_all if 'FusedBatchNorm' not in t.name]
-            ts_all = [t for t in ts_all if 'Switch' not in t.name]
-            ts_all = [t for t in ts_all if 'dropout' not in t.name]
-            # DV: FP16_FIX - need to add 'Cast' layer here to make it work for FP16
-            ts_all = [t for t in ts_all if 'Cast' not in t.name]
+            ts_all = [t for t in ts_all if "L2Loss" not in t.name]
+            ts_all = [t for t in ts_all if "entropy" not in t.name]
+            ts_all = [t for t in ts_all if "FusedBatchNorm" not in t.name]
+            ts_all = [t for t in ts_all if "Switch" not in t.name]
+            ts_all = [t for t in ts_all if "dropout" not in t.name]
+            # DV: FP16_FIX - need to add "Cast" layer here to make it work for FP16
+            ts_all = [t for t in ts_all if "Cast" not in t.name]
 
             # filter out all tensors that are inputs of the backward graph
             with util.capture_ops() as bwd_ops:
@@ -158,7 +158,7 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
                     break
 
             if not bottleneck_ts:
-                raise Exception('unable to find bottleneck tensors! please provide checkpoint nodes manually, or use checkpoints="speed".')
+                raise Exception("unable to find bottleneck tensors! please provide checkpoint nodes manually, or use checkpoints="speed".")
 
             # sort the bottlenecks
             bottlenecks_sorted_lists = tf_toposort(bottleneck_ts, within_ops=fwd_ops)
@@ -173,7 +173,7 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
                 checkpoints = sorted_bottlenecks[step::step]
 
         else:
-            raise Exception('%s is unsupported input for "checkpoints"' % (checkpoints,))
+            raise Exception("%s is unsupported input for "checkpoints"" % (checkpoints,))
 
     checkpoints = list(set(checkpoints).intersection(ts_all))
 
@@ -201,7 +201,7 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
 
     # check that we have some nodes to checkpoint
     if not checkpoints:
-        raise Exception('no checkpoints nodes found or given as input! ')
+        raise Exception("no checkpoints nodes found or given as input! ")
 
     # disconnect dependencies between checkpointed tensors
     checkpoints_disconnected = {}
@@ -229,7 +229,7 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
     debug_print("Rewired %s in place of %s restricted to %s",
                 checkpoints_disconnected.values(), checkpoints_disconnected.keys(), copied_ops)
 
-    # get gradients with respect to current boundary + original x's
+    # get gradients with respect to current boundary + original x"s
     copied_ys = [info._transformed_ops[y.op]._outputs[0] for y in ys]
     boundary = list(checkpoints_disconnected.values())
     dv = tf_gradients(ys=copied_ys, xs=boundary + xs, grad_ys=grad_ys, **kwargs)
@@ -264,7 +264,7 @@ def gradients(ys, xs, grad_ys=None, checkpoints='collection', **kwargs):
                     len(ops_to_copy), fwd_ops, [r.op for r in ts],
                     checkpoints_other)
         debug_print("ops_to_copy = %s", ops_to_copy)
-        if not ops_to_copy:  # we're done!
+        if not ops_to_copy:  # we"re done!
             break
         copied_sgv, info = ge.copy_with_input_replacements(ge.sgv(ops_to_copy), {})
         for origin_op, op in info._transformed_ops.items():
@@ -402,7 +402,7 @@ def format_ops(ops, sort_outputs=True):
     """Helper method for printing ops. Converts Tensor/Operation op to op.name,
     rest to str(op)."""
 
-    if hasattr(ops, '__iter__') and not isinstance(ops, str):
+    if hasattr(ops, "__iter__") and not isinstance(ops, str):
         l = [(op.name if hasattr(op, "name") else str(op)) for op in ops]
         if sort_outputs:
             return sorted(l)

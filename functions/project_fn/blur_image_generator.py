@@ -10,15 +10,15 @@ def get_random_kernel(blur_kernel_bank, config):
     def get_kernel_index():
         return tf.random_uniform((), minval=0, maxval=len(blur_kernel_bank.items()), dtype=tf.int32)
 
-    if config.task == 'deblur':
+    if config.task == "deblur":
         kernel_type_index = get_kernel_index()
-    elif config.task == 'segmentation':
+    elif config.task == "segmentation":
         kernel_type_index = tf.cond(tf.less_equal(tf.random_uniform([], maxval=1.0), config.blur_aug_probability), lambda: get_kernel_index(), lambda: 99)
     else:
-        raise ValueError('not supported task')
+        raise ValueError("not supported task")
 
     dummy_kernel = tf.ones([1, 1], dtype=tf.float32)  # this kernel returns the same output of input
-    dummy_kernel_name = tf.constant('as_is')
+    dummy_kernel_name = tf.constant("as_is")
     for i, (key, value) in enumerate(blur_kernel_bank.iteritems()):
         if value is not None:
             if i == 0:
@@ -32,7 +32,7 @@ def get_random_kernel(blur_kernel_bank, config):
         else:
             random_kernel = tf.cond(tf.equal(kernel_name, key), lambda: tf.squeeze(value), lambda: random_kernel)
     random_kernel.set_shape([None, None])
-    return {'tf_kernel': random_kernel, 'kernel_name': kernel_name}
+    return {"tf_kernel": random_kernel, "kernel_name": kernel_name}
 
 
 def center_crop(input_tensor, config):
@@ -51,16 +51,16 @@ def create_blur_images_individual(parsed_data, config):
     # intended to augment individual images within clone batch
     new_parsed_data = []
 
-    decode_features = {'kernel': tf.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-                       'h': tf.FixedLenFeature([], tf.int64),
-                       'w': tf.FixedLenFeature([], tf.int64)}
+    decode_features = {"kernel": tf.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
+                       "h": tf.FixedLenFeature([], tf.int64),
+                       "w": tf.FixedLenFeature([], tf.int64)}
 
     def blur_kernel_getter(tfrecord, number):
         def parser(data):
             parsed = tf.parse_single_example(data, decode_features)
-            kernel_data = tf.convert_to_tensor(parsed['kernel'])
-            h = tf.cast(tf.convert_to_tensor(parsed['h']), tf.int32)
-            w = tf.cast(tf.convert_to_tensor(parsed['w']), tf.int32)
+            kernel_data = tf.convert_to_tensor(parsed["kernel"])
+            h = tf.cast(tf.convert_to_tensor(parsed["h"]), tf.int32)
+            w = tf.cast(tf.convert_to_tensor(parsed["w"]), tf.int32)
             kernel_data = tf.reshape(kernel_data, [h, w])
 
             rnd_angle = tf.random.uniform(shape=[], minval=0.0, maxval=360.0)
@@ -72,11 +72,11 @@ def create_blur_images_individual(parsed_data, config):
             # dice 0 for doing nothing
             # dice 1 for random rotate
             # dice 2 for random scaling
-            kernel = tf.cond(tf.equal(role_dice, 1), lambda: tf.contrib.image.rotate(kernel_data, rnd_angle, interpolation='BILINEAR'), lambda: kernel_data)
+            kernel = tf.cond(tf.equal(role_dice, 1), lambda: tf.contrib.image.rotate(kernel_data, rnd_angle, interpolation="BILINEAR"), lambda: kernel_data)
             kernel = tf.cond(tf.equal(role_dice, 2), lambda: tf.image.resize_bicubic(kernel[tf.newaxis, :, :, tf.newaxis], [new_h, new_w]), lambda: kernel)
             kernel = tf.squeeze(kernel)
             kernel = misc_utils.remap_kernel_to_fixed_odd_squre(kernel_data, 33)
-            # kernel = tf.contrib.image.rotate(kernel, rnd_angle, interpolation='BILINEAR')
+            # kernel = tf.contrib.image.rotate(kernel, rnd_angle, interpolation="BILINEAR")
             return kernel / tf.reduce_sum(tf.squeeze(kernel))
 
         if tfrecord:
@@ -101,10 +101,10 @@ def create_blur_images_individual(parsed_data, config):
     blur_kernel_bank = tf.split(blur_kernel_bank, len(config.gpu_ids), 0)
 
     for i, gpu_id in enumerate(config.gpu_ids):
-        sharp_images = parsed_data['input']
+        sharp_images = parsed_data["input"]
         clone_batch, h, w, c = get_tensor_shape(sharp_images)
         corrupted_imgs = []
-        with tf.device('/device:GPU:' + str(gpu_id)):
+        with tf.device("/device:GPU:" + str(gpu_id)):
             _, h, w, _ = get_tensor_shape(sharp_images)
             for idx in range(clone_batch):
                 blur_kernel = tf.concat([blur_kernel_bank[gpu_id][idx, ::][:, :, tf.newaxis, tf.newaxis]] * c, 2)
@@ -112,7 +112,7 @@ def create_blur_images_individual(parsed_data, config):
 
                 # apply blur_kernel
                 do_blur = tf.less_equal(tf.random_uniform([]), config.blur_aug_probability)
-                corrupted_img = tf.cond(do_blur, lambda: tf.nn.depthwise_conv2d(sharp_img, blur_kernel, [1, 1, 1, 1], 'SAME'), lambda: sharp_img)
+                corrupted_img = tf.cond(do_blur, lambda: tf.nn.depthwise_conv2d(sharp_img, blur_kernel, [1, 1, 1, 1], "SAME"), lambda: sharp_img)
 
                 if config.gaussian_noise_prob > 0.0:
                     # todo: do gaussian noise again or not?
@@ -125,5 +125,5 @@ def create_blur_images_individual(parsed_data, config):
             corrupted_imgs = tf.concat(corrupted_imgs, 0)
             corrupted_imgs = center_crop(corrupted_imgs, config)
         corrupted_imgs.set_shape([clone_batch, None, None, c])
-        new_parsed_data.append({'input': corrupted_imgs, 'gt': parsed_data['gt'], 'tf_kernel': blur_kernel_bank[gpu_id]})
+        new_parsed_data.append({"input": corrupted_imgs, "gt": parsed_data["gt"], "tf_kernel": blur_kernel_bank[gpu_id]})
     return new_parsed_data

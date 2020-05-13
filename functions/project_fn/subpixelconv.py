@@ -29,15 +29,15 @@ class SubpixelConv2D(Layer):
         last_dim = input_shape[-1]
         factor = self.upsampling_factor * self.upsampling_factor
         if last_dim % (factor) != 0:
-            raise ValueError('Channel ' + str(last_dim) + ' should be of '
-                                                          'integer times of upsampling_factor^2: ' +
-                             str(factor) + '.')
+            raise ValueError("Channel " + str(last_dim) + " should be of "
+                                                          "integer times of upsampling_factor^2: " +
+                             str(factor) + ".")
 
     def call(self, inputs, **kwargs):
         return tf.depth_to_space(inputs, self.upsampling_factor)
 
     def get_config(self):
-        config = {'upsampling_factor': self.upsampling_factor, }
+        config = {"upsampling_factor": self.upsampling_factor, }
         base_config = super(SubpixelConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 

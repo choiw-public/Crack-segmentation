@@ -10,24 +10,24 @@ def sync_batch_norm(inputs,
                     is_training=True,
                     reuse=None,
                     trainable=True):
-    '''
+    """
     num_dev is how many gpus you use.
-    '''
-    num_dev = len(model_config['num_gpus'])
+    """
+    num_dev = len(model_config["num_gpus"])
     red_axises = [0, 1, 2]
     num_outputs = inputs.get_shape().as_list()[-1]
 
-    with tf.variable_scope('BatchNorm', reuse=reuse):
-        gamma = tf.get_variable(name='gamma', shape=[num_outputs], dtype=tf.float32,
+    with tf.variable_scope("BatchNorm", reuse=reuse):
+        gamma = tf.get_variable(name="gamma", shape=[num_outputs], dtype=tf.float32,
                                 initializer=tf.constant_initializer(1.0), trainable=trainable)
 
-        beta = tf.get_variable(name='beta', shape=[num_outputs], dtype=tf.float32,
+        beta = tf.get_variable(name="beta", shape=[num_outputs], dtype=tf.float32,
                                initializer=tf.constant_initializer(0.0), trainable=trainable)
 
-        moving_mean = tf.get_variable(name='moving_mean', shape=[num_outputs], dtype=tf.float32,
+        moving_mean = tf.get_variable(name="moving_mean", shape=[num_outputs], dtype=tf.float32,
                                       initializer=tf.constant_initializer(0.0), trainable=False)
 
-        moving_var = tf.get_variable(name='moving_variance', shape=[num_outputs], dtype=tf.float32,
+        moving_var = tf.get_variable(name="moving_variance", shape=[num_outputs], dtype=tf.float32,
                                      initializer=tf.constant_initializer(1.0), trainable=False)
 
         if is_training and trainable:
@@ -40,21 +40,21 @@ def sync_batch_norm(inputs,
                 batch_mean_square = tf.reduce_mean(tf.square(inputs), axis=red_axises)
                 batch_mean = gen_nccl_ops.nccl_all_reduce(
                     input=batch_mean,
-                    reduction='sum',
+                    reduction="sum",
                     num_devices=num_dev,
-                    shared_name=shared_name + '_NCCL_mean') * (1.0 / num_dev)
+                    shared_name=shared_name + "_NCCL_mean") * (1.0 / num_dev)
                 batch_mean_square = gen_nccl_ops.nccl_all_reduce(
                     input=batch_mean_square,
-                    reduction='sum',
+                    reduction="sum",
                     num_devices=num_dev,
-                    shared_name=shared_name + '_NCCL_mean_square') * (1.0 / num_dev)
+                    shared_name=shared_name + "_NCCL_mean_square") * (1.0 / num_dev)
                 mean = batch_mean
                 var = batch_mean_square - tf.square(batch_mean)
-            outputs = tf.nn.batch_normalization(inputs, mean, var, beta, gamma, bn_config['epsilon'])
+            outputs = tf.nn.batch_normalization(inputs, mean, var, beta, gamma, bn_config["epsilon"])
 
             if int(outputs.device[-1]) == 0:
-                update_moving_mean_op = tf.assign(moving_mean, moving_mean * bn_config['momentum'] + mean * (1 - bn_config['momentum']))
-                update_moving_var_op = tf.assign(moving_var, moving_var * bn_config['momentum'] + var * (1 - bn_config['momentum']))
+                update_moving_mean_op = tf.assign(moving_mean, moving_mean * bn_config["momentum"] + mean * (1 - bn_config["momentum"]))
+                update_moving_var_op = tf.assign(moving_var, moving_var * bn_config["momentum"] + var * (1 - bn_config["momentum"]))
                 add_model_variable(moving_mean)
                 add_model_variable(moving_var)
 
@@ -69,5 +69,5 @@ def sync_batch_norm(inputs,
                 outputs = tf.identity(outputs)
 
         else:
-            outputs, _, _ = tf.nn.fused_batch_norm(inputs, gamma, beta, mean=moving_mean, variance=moving_var, epsilon=bn_config['epsilon'], is_training=False)
+            outputs, _, _ = tf.nn.fused_batch_norm(inputs, gamma, beta, mean=moving_mean, variance=moving_var, epsilon=bn_config["epsilon"], is_training=False)
     return outputs

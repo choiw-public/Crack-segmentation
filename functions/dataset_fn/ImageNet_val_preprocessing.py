@@ -29,7 +29,7 @@ This script moves the files into a directory structure like such:
  data_dir/n01440764/ILSVRC2012_val_00000293.JPEG
  data_dir/n01440764/ILSVRC2012_val_00000543.JPEG
  ...
-where 'n01440764' is the unique synset label associated with
+where "n01440764" is the unique synset label associated with
 these images.
 
 This directory reorganization requires a mapping from validation image
@@ -53,8 +53,8 @@ import errno
 import os.path
 import sys
 
-validation_labels_file = './imagenet_val_labels'
-data_dir = '/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/val'
+validation_labels_file = "./imagenet_val_labels"
+data_dir = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/val"
 # Read in the 50000 synsets associated with the validation data set.
 labels = [l.strip() for l in open(validation_labels_file).readlines()]
 unique_labels = set(labels)
@@ -66,16 +66,16 @@ for label in unique_labels:
     try:
         os.makedirs(labeled_data_dir)
     except OSError as e:
-        # Raise all errors but 'EEXIST'
+        # Raise all errors but "EEXIST"
         if e.errno != errno.EEXIST:
             raise
 
 # Move all of the image to the appropriate sub-directory.
 for i in range(len(labels)):
-    basename = 'ILSVRC2012_val_000%.5d.JPEG' % (i + 1)
+    basename = "ILSVRC2012_val_000%.5d.JPEG" % (i + 1)
     original_filename = os.path.join(data_dir, basename)
     if not os.path.exists(original_filename):
-        print('Failed to find: %s' % original_filename)
+        print("Failed to find: %s" % original_filename)
         sys.exit(-1)
     new_filename = os.path.join(data_dir, labels[i], basename)
     os.rename(original_filename, new_filename)

@@ -1,8 +1,8 @@
 import tensorflow as tf
 
-Froms = ['exit', 'decoder1', 'decoder2', 'decoder3']
-Tos = ['middle/block6', 'ASPP', 'decoder1', 'decoder2']
-log_dir = './models/pretrained_DenSepNet'
+Froms = ["exit", "decoder1", "decoder2", "decoder3"]
+Tos = ["middle/block6", "ASPP", "decoder1", "decoder2"]
+log_dir = "./models/pretrained_DenSepNet"
 
 checkpoint_list = tf.train.get_checkpoint_state(log_dir).all_model_checkpoint_paths
 

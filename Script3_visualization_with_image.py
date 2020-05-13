@@ -1,4 +1,4 @@
-from functions.project_fn.model_utils_developing import build_model
+from functions.project_fn.model_utils import build_model
 from functions.project_fn.input_pipeline import get_image_list, build_input_pipeline
 
 from functions.project_fn.deploy_config import DeployConfig
@@ -11,11 +11,11 @@ import numpy as np
 import os
 import time
 
-model_name = 'fullmodel1_continue'
+model_name = "fullmodel1_continue"
 
-config = DeployConfig(model_name, 'vis')
+config = DeployConfig(model_name, "vis")
 img_ph = tf.placeholder(config.dtype, [None, None, None, 3])
-data = {'input': img_ph, 'gt': None}
+data = {"input": img_ph, "gt": None}
 pred, hvd = build_model(data, config)
 restorer = tf.train.Saver()
 session_config = tf.ConfigProto()
@@ -24,9 +24,9 @@ session_config.allow_soft_placement = True
 session_config.gpu_options.visible_device_list = str(hvd.local_rank())
 with tf.Session(config=session_config) as sess:
     ckpt = get_ckpt(config)
-    print('Current ckpt: %s' % ckpt)
+    print("Current ckpt: %s" % ckpt)
     restorer.restore(sess, ckpt)
-    img_list = list_getter(config.img_dir, extension='jpg')
+    img_list = list_getter(config.img_dir, extension="jpg")
     for img_name in img_list:
         img = cv.imread(img_name)[:, :, ::-1]
         if config.dtype == tf.float16:
@@ -38,9 +38,9 @@ with tf.Session(config=session_config) as sess:
         base_folder = os.path.dirname(img_name).replace(config.img_dir, config.vis_result_dir)
         if not os.path.exists(base_folder):
             os.makedirs(base_folder)
-        mask_name = os.path.join(base_folder, name_without_ext + '_mask.png')
-        superimposed_name = os.path.join(base_folder, name_without_ext + '_superimposed.jpg')
-        print('current image name: %s' % os.path.basename(name_without_ext))
+        mask_name = os.path.join(base_folder, name_without_ext + "_mask.png")
+        superimposed_name = os.path.join(base_folder, name_without_ext + "_superimposed.jpg")
+        print("current image name: %s" % os.path.basename(name_without_ext))
 
         mask = pred_np.squeeze().astype(np.uint8)[:, :, ::-1]
         superimposed = cv.addWeighted(img[:, :, ::-1], 1.0, mask, 1.0, 0)
@@ -48,5 +48,5 @@ with tf.Session(config=session_config) as sess:
             cv.imwrite(mask_name, mask)
             cv.imwrite(superimposed_name, superimposed)
         except:
-            print('debug from here')
+            print("debug from here")
 

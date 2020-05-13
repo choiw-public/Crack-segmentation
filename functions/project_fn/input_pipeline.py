@@ -6,11 +6,11 @@ import os
 
 
 def get_tfrecord_features():
-    return {'image': tf.FixedLenFeature((), tf.string, default_value=''),
-            'filename': tf.FixedLenFeature((), tf.string, default_value=''),
-            'height': tf.FixedLenFeature((), tf.int64, default_value=0),
-            'width': tf.FixedLenFeature((), tf.int64, default_value=0),
-            'segmentation': tf.FixedLenFeature((), tf.string, default_value='')}
+    return {"image": tf.FixedLenFeature((), tf.string, default_value=""),
+            "filename": tf.FixedLenFeature((), tf.string, default_value=""),
+            "height": tf.FixedLenFeature((), tf.int64, default_value=0),
+            "width": tf.FixedLenFeature((), tf.int64, default_value=0),
+            "segmentation": tf.FixedLenFeature((), tf.string, default_value="")}
 
 
 def input_from_tfrecord(config, drop_remainder=True):
@@ -22,7 +22,7 @@ def input_from_tfrecord(config, drop_remainder=True):
             batch_actual = config.batch_size - batch_background
 
         else:
-            raise ValueError('unexpected background_proportion')
+            raise ValueError("unexpected background_proportion")
     else:
         batch_actual = config.batch_size
         batch_background = 0
@@ -32,20 +32,20 @@ def input_from_tfrecord(config, drop_remainder=True):
             batch_blur = int(config.batch_size * config.blur_proportion)
             batch_actual = batch_actual - batch_blur
         else:
-            raise ValueError('unexpected blur_proportion')
+            raise ValueError("unexpected blur_proportion")
     else:
         batch_blur = 0
 
     def parse_fn(tfrecord):
         parsed = tf.parse_single_example(tfrecord, features)
-        img = tf.convert_to_tensor(tf.image.decode_jpeg(parsed['image'], channels=3))
-        fname = tf.convert_to_tensor(parsed['filename'])
-        seg = tf.convert_to_tensor(tf.image.decode_jpeg(parsed['segmentation'], channels=1))
+        img = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
+        fname = tf.convert_to_tensor(parsed["filename"])
+        seg = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
         img, seg = image_preprocess_for_segmentation(img, seg, config)
-        return {'input': img, 'filename': fname, 'gt': seg}
+        return {"input": img, "filename": fname, "gt": seg}
 
     # for actual images
-    tfrecords_list_actual = list_getter(config.dataset_dir, extension='tfrecord')
+    tfrecords_list_actual = list_getter(config.dataset_dir, extension="tfrecord")
     data_actual = tf.data.TFRecordDataset(tfrecords_list_actual)
     if config.is_train:
         data_actual = data_actual.repeat()
@@ -60,7 +60,7 @@ def input_from_tfrecord(config, drop_remainder=True):
     whole_init = iterator_actual.initializer
     # for backgorund images
     if batch_background > 0:
-        tfrecords_list_background = list_getter(config.background_dir, extension='tfrecord')
+        tfrecords_list_background = list_getter(config.background_dir, extension="tfrecord")
         data_background = tf.data.TFRecordDataset(tfrecords_list_background)
         if config.is_train:
             data_background = data_background.repeat()
@@ -77,7 +77,7 @@ def input_from_tfrecord(config, drop_remainder=True):
         background_batch = None
         background_init = None
     if batch_blur > 0:
-        tfrecords_list_blur = list_getter(config.blur_dir, extension='tfrecord')
+        tfrecords_list_blur = list_getter(config.blur_dir, extension="tfrecord")
         data_blur = tf.data.TFRecordDataset(tfrecords_list_blur)
         if config.is_train:
             data_blur = data_blur.repeat()
@@ -112,12 +112,12 @@ def input_from_tfrecord(config, drop_remainder=True):
 
 
 def tfrecord_input_pipeline(config):
-    print('=============================== Attention ===============================')
-    print('Building input pipeline with tfrecord...')
+    print("=============================== Attention ===============================")
+    print("Building input pipeline with tfrecord...")
     in_data, init = input_from_tfrecord(config)
     # if config.blur_aug_probability > 0.0:
-    #     raise ValueError('not implemented yet')
-    #     with tf.device('/device:GPU:%d' % gpu_id):
+    #     raise ValueError("not implemented yet")
+    #     with tf.device("/device:GPU:%d" % gpu_id):
     #         return create_blur_images_individual(parsed_data, config)
     if tf.executing_eagerly():
         return in_data
@@ -125,9 +125,9 @@ def tfrecord_input_pipeline(config):
         return in_data, init
     ########################################################################
     # TODO: for debugging
-    # tf.add_to_collection('input', tf.identity(input_for_clones[0]['input'], 'input'))
-    # tf.add_to_collection('gt', tf.identity(ground_truth_for_clones[0]['gt'], 'gt'))
-    # tf.add_to_collection('filename', tf.identity(input_for_clones[0]['filename'], 'filename'))
+    # tf.add_to_collection("input", tf.identity(input_for_clones[0]["input"], "input"))
+    # tf.add_to_collection("gt", tf.identity(ground_truth_for_clones[0]["gt"], "gt"))
+    # tf.add_to_collection("filename", tf.identity(input_for_clones[0]["filename"], "filename"))
     ########################################################################
 
 
@@ -137,33 +137,33 @@ def get_image_list(config):
         if dir_name:
             for path, subdirs, files in os.walk(dir_name):
                 for name in files:
-                    if name.lower().endswith(('png', 'jpg')):
+                    if name.lower().endswith(("png", "jpg")):
                         image_list.append(os.path.join(path, name))
             image_list = natsorted(image_list)
         return image_list
 
     def inspect_file_extension(target_list):
-        extensions = list(set([os.path.basename(img_name).split('.')[-1] for img_name in target_list]))
+        extensions = list(set([os.path.basename(img_name).split(".")[-1] for img_name in target_list]))
         if len(extensions) > 1:
-            raise ValueError('Multiple image formats are used:')
+            raise ValueError("Multiple image formats are used:")
         elif len(extensions) == 0:
-            raise ValueError('no image files exist')
+            raise ValueError("no image files exist")
 
     def inspect_pairness(list1, list2):
         if not len(list1) == len(list2):
-            raise ValueError('number of images are different')
+            raise ValueError("number of images are different")
         for file1, file2 in zip(list1, list2):
-            file1_name = os.path.basename(file1).split('.')[-2]
-            file2_name = os.path.basename(file2).split('.')[-2]
+            file1_name = os.path.basename(file1).split(".")[-2]
+            file2_name = os.path.basename(file2).split(".")[-2]
             if not file1_name == file2_name:
-                raise ValueError('image names are different: %s | %s' % (file2, file1))
+                raise ValueError("image names are different: %s | %s" % (file2, file1))
 
     seg_list = _list_getter(config.seg_dir)
     img_list = _list_getter(config.img_dir)
     inspect_pairness(seg_list, img_list)
     inspect_file_extension(seg_list)
     inspect_file_extension(img_list)
-    return {'image': img_list, 'gt': seg_list}
+    return {"image": img_list, "gt": seg_list}
 
 
 def input_from_image(image_list, config):
@@ -175,10 +175,10 @@ def input_from_image(image_list, config):
         img = tf.image.decode_png(tf.read_file(img_id), 3)
         seg = tf.image.decode_png(tf.read_file(seg_id), 1)
         img, seg = image_preprocess_for_segmentation(img, seg, config)
-        return {'input': img, 'filename': img_id, 'gt': seg}
+        return {"input": img, "filename": img_id, "gt": seg}
 
-    img_list = tf.convert_to_tensor(image_list['image'], dtype=tf.string)
-    seg_list = tf.convert_to_tensor(image_list['gt'], dtype=tf.string)
+    img_list = tf.convert_to_tensor(image_list["image"], dtype=tf.string)
+    seg_list = tf.convert_to_tensor(image_list["gt"], dtype=tf.string)
     img_data = tf.data.Dataset.from_tensor_slices(img_list)
     seg_data = tf.data.Dataset.from_tensor_slices(seg_list)
     parsed_data = get_parsed_data(tf.data.Dataset.zip((img_data, seg_data)), parser)
@@ -187,19 +187,19 @@ def input_from_image(image_list, config):
 
 def image_input_pipeline(config):
     # in case of not training phase, images are directly used.
-    print('=============================== Attention ===============================')
-    print('Building input pipeline with image...')
+    print("=============================== Attention ===============================")
+    print("Building input pipeline with image...")
     image_list = get_image_list(config)
     return input_from_image(image_list, config)
 
 
 def build_input_pipeline(config):
-    if config.job == 'train':
+    if config.phase == "train":
         return tfrecord_input_pipeline(config)
-    elif config.job in ['eval', 'vis']:
-        if config.data_type == 'image':
+    elif config.phase in ["eval", "vis"]:
+        if config.data_type == "image":
             return image_input_pipeline(config)
-        elif config.data_type == 'tfrecord':
+        elif config.data_type == "tfrecord":
             return tfrecord_input_pipeline(config)
         else:
-            raise ValueError('not supported')
+            raise ValueError("not supported")

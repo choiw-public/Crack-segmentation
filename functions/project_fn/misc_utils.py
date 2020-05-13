@@ -35,14 +35,14 @@ def list_getter(dir_name, extension, must_include=None):
 
 
 def get_all_ckpt_id(config):
-    ckpt_full_list = glob.glob(os.path.join(config.ckpt_dir, 'model_step*'))
+    ckpt_full_list = glob.glob(os.path.join(config.ckpt_dir, "model_step*"))
     all_ckpt_id = []
     for filename in ckpt_full_list:
         basename = os.path.basename(filename)
-        if len(basename.split('.')) != 1:
-            all_ckpt_id.append(basename.split('.')[0])
+        if len(basename.split(".")) != 1:
+            all_ckpt_id.append(basename.split(".")[0])
     all_ckpt_id = list(set(all_ckpt_id))
-    all_ckpt_id.sort(key=lambda var: [int(x) if x.isdigit() else x for x in re.findall(r'[^0-9]|[0-9]+', var)])
+    all_ckpt_id.sort(key=lambda var: [int(x) if x.isdigit() else x for x in re.findall(r"[^0-9]|[0-9]+", var)])
     return all_ckpt_id
 
 
@@ -53,28 +53,28 @@ def get_all_ckpt_list(config):
 
 def get_ckpt_list_in_range(config):
     all_ckpt_id = get_all_ckpt_id(config)
-    if config.ckpt_start == 'beginning':
+    if config.ckpt_start == "beginning":
         start_idx = 0
     else:
-        start_idx = all_ckpt_id.index('model_step-%d' % config.ckpt_start)
+        start_idx = all_ckpt_id.index("model_step-%d" % config.ckpt_start)
 
-    if config.ckpt_end == 'end':
+    if config.ckpt_end == "end":
         end_idx = None
     else:
-        end_idx = all_ckpt_id.index('model_step-%d' % config.ckpt_end) + 1
+        end_idx = all_ckpt_id.index("model_step-%d" % config.ckpt_end) + 1
     all_ckpt_id = all_ckpt_id[start_idx:end_idx:config.ckpt_step]
     return [os.path.join(config.ckpt_dir, ckpt_id) for ckpt_id in all_ckpt_id]
 
 
 def get_ckpt(config):
     all_ckpt_id = get_all_ckpt_id(config)
-    ckpt_idx = all_ckpt_id.index('model_step-%d' % config.ckpt_id)
+    ckpt_idx = all_ckpt_id.index("model_step-%d" % config.ckpt_id)
     ckpt_id = all_ckpt_id[ckpt_idx]
     return os.path.join(config.ckpt_dir, ckpt_id)
 
 
 def pad_for_stride(tensor, config):
-    if config.task == 'segmentation':
+    if config.task == "segmentation":
         stride = config.num_stride
 
         def update_length(_length, _stride):
@@ -99,16 +99,16 @@ def pad_for_stride(tensor, config):
         num_pad_cache = [[0, 0], [num_pad_h1, num_pad_h2], [num_pad_w1, num_pad_w2], [0, 0]]
         aligned_tensor = tf.pad(tensor, num_pad_cache)
         return aligned_tensor, num_pad_cache[1:3]
-    elif config.task == 'deblur':
+    elif config.task == "deblur":
         return tensor, None
     else:
-        raise ValueError('not supported')
+        raise ValueError("not supported")
 
 
 def unpad_for_stride(tensor, pad_cache):
     if pad_cache:
         if not len(get_tensor_shape(tensor)) == 4:
-            raise ValueError('the rank of tensor must be 2, 3, or 4')
+            raise ValueError("the rank of tensor must be 2, 3, or 4")
         _, h, w, c = get_tensor_shape(tensor)
         h1 = pad_cache[0][0]
         h2 = h - pad_cache[0][1]
@@ -133,7 +133,7 @@ def gaussian_kernel_2d(size, sigma):
     size = tf.cast(size, tf.float32)
     x = tf.linspace(-(size // 2), size // 2, tf.cast(size, tf.int32))
     vals = distribution.prob(x)
-    kernel = tf.einsum('i,j->ij', vals, vals)
+    kernel = tf.einsum("i,j->ij", vals, vals)
     kernel = kernel / tf.reduce_sum(kernel)
     return kernel[:, :, tf.newaxis, tf.newaxis]
 
@@ -158,11 +158,11 @@ def numpy_gaussian_kernel_2d(size, sigma):
 def get_random_gaussian_kernel_size(target_tensor):
     _, h, w, c = get_tensor_shape(target_tensor)
     # if not c == 1:
-    #     raise ValueError('currently grayscale deblur is only supported')
+    #     raise ValueError("currently grayscale deblur is only supported")
 
     length = tf.reduce_min([h, w])
     if length % 2 == 0:
-        raise ValueError('this function is designed to apply an odd size of feature map')
+        raise ValueError("this function is designed to apply an odd size of feature map")
 
     max_size = tf.reduce_min([tf.cast(length, tf.float32), 51.0])
     max_size = tf.cast(tf.cond(tf.equal(max_size % 2.0, 0.0), lambda: max_size - 1, lambda: max_size), tf.int32)
@@ -228,8 +228,8 @@ def get_random_kernel_sizes(img1, num_kernels):
 
 
 def remap_kernel(kernel, kernel_size, reference_kernel_size):
-    # this function is intended to zero pad 'kernel' to have size of 'reference_kernel'
-    # 'kernel' must have smaller dimension than 'reference_kernel'
+    # this function is intended to zero pad "kernel" to have size of "reference_kernel"
+    # "kernel" must have smaller dimension than "reference_kernel"
     num_zeros = (reference_kernel_size - kernel_size) / 2
     pad = [[num_zeros, num_zeros], [num_zeros, num_zeros], [0, 0], [0, 0]]
     return tf.pad(kernel, pad)
@@ -237,7 +237,7 @@ def remap_kernel(kernel, kernel_size, reference_kernel_size):
 
 def remap_kernel_to_fixed_odd_squre(kernel, kernel_size):
     if kernel_size % 2 == 0:
-        raise ValueError('kernel_size should be an odd number')
+        raise ValueError("kernel_size should be an odd number")
 
     kernel_shape = get_tensor_shape(kernel)
     is_odd = tf.cast(tf.floormod(kernel_size, 2), tf.bool)
@@ -276,26 +276,26 @@ def sobel(gaussian_filtered):
     sobel_x = tf.concat([sobel_x, sobel_x, sobel_x], 2)
     sobel_y = tf.concat([sobel_y, sobel_y, sobel_y], 2)
 
-    sobel_filtered_x = tf.nn.depthwise_conv2d(gaussian_filtered, sobel_x, [1, 1, 1, 1], 'SAME')
-    sobel_filtered_y = tf.nn.depthwise_conv2d(gaussian_filtered, sobel_y, [1, 1, 1, 1], 'SAME')
+    sobel_filtered_x = tf.nn.depthwise_conv2d(gaussian_filtered, sobel_x, [1, 1, 1, 1], "SAME")
+    sobel_filtered_y = tf.nn.depthwise_conv2d(gaussian_filtered, sobel_y, [1, 1, 1, 1], "SAME")
     return tf.sqrt(sobel_filtered_x ** 2 + sobel_filtered_y ** 2)
 
 
 def add_to_collection(featuremap, has_kernel=True):
-    tnsr_name = featuremap.name.encode('ascii')
-    filter_name = os.path.join(*tnsr_name.split('/')[1:-1])
+    tnsr_name = featuremap.name.encode("ascii")
+    filter_name = os.path.join(*tnsr_name.split("/")[1:-1])
     trainable = []
     if has_kernel:
         for kernel in tf.trainable_variables():
             if filter_name in kernel.name:
                 trainable.append(kernel)
-        tf.add_to_collection('layer', [trainable, featuremap])
+        tf.add_to_collection("layer", [trainable, featuremap])
     else:
-        tf.add_to_collection('layer', [featuremap])
+        tf.add_to_collection("layer", [featuremap])
 
 
 def init_check(sess):
-    layer_collection = tf.get_collection('layer')
+    layer_collection = tf.get_collection("layer")
 
     # To see histogram of input data, uncomment the below and manually check
     # in_container = []
@@ -303,36 +303,36 @@ def init_check(sess):
     # for i in range(100):
     #     in_container.append(sess.run(tf_in))
     # in_data = np.concatenate(in_container, 0)
-    # plt.hist(in_data.flatten(), bins='auto')
+    # plt.hist(in_data.flatten(), bins="auto")
     layers = sess.run(layer_collection)
-    with open('layer_statistics.csv', 'w') as w:
-        w.write('layer,filter_mean,filter_var,filter_max, filter_min, fmap_mean, fmap_var, fmap_max, fmap_min \n')
+    with open("layer_statistics.csv", "w") as w:
+        w.write("layer,filter_mean,filter_var,filter_max, filter_min, fmap_mean, fmap_var, fmap_max, fmap_min \n")
         for i, layer in enumerate(layers):
-            layer_name = layer_collection[i][-1].name.encode('ascii')
+            layer_name = layer_collection[i][-1].name.encode("ascii")
             if len(layer) == 1:  # in case there are no trainable filters
                 fmap = layer[0]
-                w.write('%s, -, -, -, -, %.3f, %.3f, %.3f, %.3f\n' % (layer_name, fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
+                w.write("%s, -, -, -, -, %.3f, %.3f, %.3f, %.3f\n" % (layer_name, fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
             else:
                 filter = layer[0][0]
                 bias = layer[0][1]
                 fmap = layer[1]
-                w.write('%s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n' % (
+                w.write("%s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n" % (
                     layer_name, filter.mean(), filter.var(), filter.max(), filter.min(), fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
 
 
 def categorized_ssim(config):
     dir_name = config.eval_log_dir
-    eval_list = list_getter(dir_name, 'csv', 'model_step-')
+    eval_list = list_getter(dir_name, "csv", "model_step-")
     head_cache = []
-    with open(os.path.join(dir_name, '00.metric_overall_categorized.csv'), 'w') as w:
+    with open(os.path.join(dir_name, "00.metric_overall_categorized.csv"), "w") as w:
         for m in eval_list:
-            with open(m, 'r') as r:
+            with open(m, "r") as r:
                 eval_metric = r.readlines()
-            step = int(m[m.find('(') + 1: m.find(')')].split('-')[-1])
+            step = int(m[m.find("(") + 1: m.find(")")].split("-")[-1])
             categorized = dict()
             for e in eval_metric[1:]:
-                category = 'SSIM' + '_' + e[e.find('(') + 1:e.find(')')]
-                score = float(e.split(',')[-1].replace(' ', '').replace('\n', ''))
+                category = "SSIM" + "_" + e[e.find("(") + 1:e.find(")")]
+                score = float(e.split(",")[-1].replace(" ", "").replace("\n", ""))
                 if category in categorized.keys():
                     categorized[category][0] += score
                     categorized[category][1] += 1
@@ -351,11 +351,11 @@ def categorized_ssim(config):
             else:
                 head_cache = categorized.keys()
                 head_cache.sort()
-                w.write('ckpt_step, ')
-                w.write(', '.join([head for head in head_cache]) + '\n')
+                w.write("ckpt_step, ")
+                w.write(", ".join([head for head in head_cache]) + "\n")
 
-            w.write('%s, ' % step)
-            w.write(', '.join([str(categorized[h]) for h in head_cache]) + '\n')
+            w.write("%s, " % step)
+            w.write(", ".join([str(categorized[h]) for h in head_cache]) + "\n")
 
 
 def detect_ridge(input_tensor):
@@ -363,11 +363,11 @@ def detect_ridge(input_tensor):
     dx_kernel = dx_kernel[:, :, tf.newaxis, tf.newaxis]
     dy_kernel = tf.constant([[0, -0.5, 0], [0, 0, 0], [0, 0.5, 0]], tf.float32)
     dy_kernel = dy_kernel[:, :, tf.newaxis, tf.newaxis]
-    dy = tf.nn.conv2d(input_tensor, tf.concat([dy_kernel] * 3, 2), [1, 1, 1, 1], padding='SAME')
-    dx = tf.nn.conv2d(input_tensor, tf.concat([dx_kernel] * 3, 2), [1, 1, 1, 1], padding='SAME')
-    dydy = tf.nn.conv2d(dy, dy_kernel, [1, 1, 1, 1], padding='SAME')
-    dydx = tf.nn.conv2d(dy, dx_kernel, [1, 1, 1, 1], padding='SAME')
-    dxdx = tf.nn.conv2d(dx, dx_kernel, [1, 1, 1, 1], padding='SAME')
+    dy = tf.nn.conv2d(input_tensor, tf.concat([dy_kernel] * 3, 2), [1, 1, 1, 1], padding="SAME")
+    dx = tf.nn.conv2d(input_tensor, tf.concat([dx_kernel] * 3, 2), [1, 1, 1, 1], padding="SAME")
+    dydy = tf.nn.conv2d(dy, dy_kernel, [1, 1, 1, 1], padding="SAME")
+    dydx = tf.nn.conv2d(dy, dx_kernel, [1, 1, 1, 1], padding="SAME")
+    dxdx = tf.nn.conv2d(dx, dx_kernel, [1, 1, 1, 1], padding="SAME")
     eq1 = (dydy + dxdx) / 2
     eq2 = tf.sqrt(4 * dydx ** 2 + (dydy - dxdx) ** 2) / 2
     ridge_maxima = eq1 + eq2
@@ -383,11 +383,11 @@ def detect_ridge_channel_wise(input_tensor):
     dy_kernel = dy_kernel[:, :, tf.newaxis, tf.newaxis]
     dx_kernel = tf.concat([dx_kernel] * c, 2)
     dy_kernel = tf.concat([dy_kernel] * c, 2)
-    dy = tf.nn.depthwise_conv2d(input_tensor, dy_kernel, [1, 1, 1, 1], padding='SAME')
-    dx = tf.nn.depthwise_conv2d(input_tensor, dx_kernel, [1, 1, 1, 1], padding='SAME')
-    dydy = tf.nn.depthwise_conv2d(dy, dy_kernel, [1, 1, 1, 1], padding='SAME')
-    dydx = tf.nn.depthwise_conv2d(dy, dx_kernel, [1, 1, 1, 1], padding='SAME')
-    dxdx = tf.nn.depthwise_conv2d(dx, dx_kernel, [1, 1, 1, 1], padding='SAME')
+    dy = tf.nn.depthwise_conv2d(input_tensor, dy_kernel, [1, 1, 1, 1], padding="SAME")
+    dx = tf.nn.depthwise_conv2d(input_tensor, dx_kernel, [1, 1, 1, 1], padding="SAME")
+    dydy = tf.nn.depthwise_conv2d(dy, dy_kernel, [1, 1, 1, 1], padding="SAME")
+    dydx = tf.nn.depthwise_conv2d(dy, dx_kernel, [1, 1, 1, 1], padding="SAME")
+    dxdx = tf.nn.depthwise_conv2d(dx, dx_kernel, [1, 1, 1, 1], padding="SAME")
     eq1 = (dydy + dxdx) / 2
     eq2 = tf.sqrt(4 * dydx ** 2 + (dydy - dxdx) ** 2) / 2
     ridge_maxima = eq1 + eq2
@@ -396,18 +396,18 @@ def detect_ridge_channel_wise(input_tensor):
 
 
 def tensor_summary(layer_collection, layers):
-    with open('layer_statistics.csv', 'w') as w:
-        w.write('layer,filter_mean,filter_var,filter_max, filter_min, fmap_mean, fmap_var, fmap_max, fmap_min \n')
+    with open("layer_statistics.csv", "w") as w:
+        w.write("layer,filter_mean,filter_var,filter_max, filter_min, fmap_mean, fmap_var, fmap_max, fmap_min \n")
         for i, layer in enumerate(layers):
-            layer_name = layer_collection[i][-1].name.encode('ascii')
+            layer_name = layer_collection[i][-1].name.encode("ascii")
             if len(layer) == 1:  # in case there are no trainable filters
                 fmap = layer[0]
-                w.write('%s, -, -, -, -, %.3f, %.3f, %.3f, %.3f\n' % (layer_name, fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
+                w.write("%s, -, -, -, -, %.3f, %.3f, %.3f, %.3f\n" % (layer_name, fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
             else:
                 f = layer[0][0]  # filter
                 b = layer[0][1]  # bias
                 fmap = layer[1]  # featuremap
-                w.write('%s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n' % (
+                w.write("%s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n" % (
                     layer_name, f.mean(), f.var(), f.max(), f.min(), fmap.mean(), fmap.var(), fmap.max(), fmap.min()))
     w.close()
 

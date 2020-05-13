@@ -59,7 +59,7 @@ FLAGS = flags.FLAGS
 
 # Support folding two types of batch norm ops:
 # BatchNormWithGlobalNormalization and FusedBatchNorm.  The two types only
-# differ in input order and attribute names, so we've collected their
+# differ in input order and attribute names, so we"ve collected their
 # differences up front.
 INPUT_ORDER = {
     # Order of inputs for BatchNormWithGlobalNormalization.
@@ -147,11 +147,11 @@ def node_from_map(node_map, name):
   Returns:
     NodeDef of the node with the given name.
   Raises:
-    ValueError: If the node isn't present in the dictionary.
+    ValueError: If the node isn"t present in the dictionary.
   """
   stripped_name = node_name_from_input(name)
   if stripped_name not in node_map:
-    raise ValueError("No node named '%s' found in map." % name)
+    raise ValueError("No node named "%s" found in map." % name)
   return node_map[stripped_name]
 
 
@@ -162,11 +162,11 @@ def values_from_const(node_def):
   Returns:
     Numpy ndarray containing the values.
   Raises:
-    ValueError: If the node isn't a Const.
+    ValueError: If the node isn"t a Const.
   """
   if node_def.op != "Const":
     raise ValueError(
-        "Node named '%s' should be a Const op for values_from_const." %
+        "Node named "%s" should be a Const op for values_from_const." %
         node_def.name)
   input_tensor = node_def.attr["value"].tensor
   tensor_value = tensor_util.MakeNdarray(input_tensor)
@@ -184,12 +184,12 @@ def fold_batch_norms(input_graph_def):
   """Removes batch normalization ops by folding them into convolutions.
   Batch normalization during training has multiple dynamic parameters that are
   updated, but once the graph is finalized these become constants. That means
-  there's an opportunity to reduce the computations down to a scale and
+  there"s an opportunity to reduce the computations down to a scale and
   addition, rather than the more expensive multiple ops, and even bake the
   scaling into the convolution weights. This function identifies the typical
   pattern of batch normalization subgraphs, and performs the transformation to
   fold the computations down into a simpler form. It currently only spots batch
-  normalization that's performed by the BatchNormWithGlobalNormalization and
+  normalization that"s performed by the BatchNormWithGlobalNormalization and
   FusedBatchNorm ops, and will need to be extended in the future to handle the
   newer style.
   Args:
@@ -215,14 +215,14 @@ def fold_batch_norms(input_graph_def):
     conv_op = node_from_map(input_node_map,
                             node.input[INPUT_ORDER[node.op].index("conv_op")])
     if conv_op.op != "Conv2D" and conv_op.op != "DepthwiseConv2dNative":
-      tf_logging.warning("Didn't find expected Conv2D or DepthwiseConv2dNative"
-                         " input to '%s'" % node.name)
+      tf_logging.warning("Didn"t find expected Conv2D or DepthwiseConv2dNative"
+                         " input to "%s"" % node.name)
       continue
 
     weights_op = node_from_map(input_node_map, conv_op.input[1])
     if weights_op.op != "Const":
-      tf_logging.warning("Didn't find expected conv Constant input to '%s',"
-                         " found %s instead. Maybe because freeze_graph wasn't"
+      tf_logging.warning("Didn"t find expected conv Constant input to "%s","
+                         " found %s instead. Maybe because freeze_graph wasn"t"
                          " run first?" % (conv_op.name, weights_op))
       continue
     weights = values_from_const(weights_op)
@@ -234,8 +234,8 @@ def fold_batch_norms(input_graph_def):
     mean_op = node_from_map(input_node_map,
                             node.input[INPUT_ORDER[node.op].index("mean_op")])
     if mean_op.op != "Const":
-      tf_logging.warning("Didn't find expected mean Constant input to '%s',"
-                         " found %s instead. Maybe because freeze_graph wasn't"
+      tf_logging.warning("Didn"t find expected mean Constant input to "%s","
+                         " found %s instead. Maybe because freeze_graph wasn"t"
                          " run first?" % (node.name, mean_op))
       continue
     mean_value = values_from_const(mean_op)
@@ -248,8 +248,8 @@ def fold_batch_norms(input_graph_def):
     var_op = node_from_map(input_node_map,
                            node.input[INPUT_ORDER[node.op].index("var_op")])
     if var_op.op != "Const":
-      tf_logging.warning("Didn't find expected var Constant input to '%s',"
-                         " found %s instead. Maybe because freeze_graph wasn't"
+      tf_logging.warning("Didn"t find expected var Constant input to "%s","
+                         " found %s instead. Maybe because freeze_graph wasn"t"
                          " run first?" % (node.name, var_op))
       continue
     var_value = values_from_const(var_op)
@@ -262,8 +262,8 @@ def fold_batch_norms(input_graph_def):
     beta_op = node_from_map(input_node_map,
                             node.input[INPUT_ORDER[node.op].index("beta_op")])
     if beta_op.op != "Const":
-      tf_logging.warning("Didn't find expected beta Constant input to '%s',"
-                         " found %s instead. Maybe because freeze_graph wasn't"
+      tf_logging.warning("Didn"t find expected beta Constant input to "%s","
+                         " found %s instead. Maybe because freeze_graph wasn"t"
                          " run first?" % (node.name, beta_op))
       continue
     beta_value = values_from_const(beta_op)
@@ -276,8 +276,8 @@ def fold_batch_norms(input_graph_def):
     gamma_op = node_from_map(input_node_map,
                              node.input[INPUT_ORDER[node.op].index("gamma_op")])
     if gamma_op.op != "Const":
-      tf_logging.warning("Didn't find expected gamma Constant input to '%s',"
-                         " found %s instead. Maybe because freeze_graph wasn't"
+      tf_logging.warning("Didn"t find expected gamma Constant input to "%s","
+                         " found %s instead. Maybe because freeze_graph wasn"t"
                          " run first?" % (node.name, gamma_op))
       continue
     gamma_value = values_from_const(gamma_op)
@@ -357,9 +357,9 @@ def fold_batch_norms(input_graph_def):
 
 def fuse_resize_and_conv(input_graph_def, output_node_names):
   """Merges preceding resize and mirror pad ops into a specialized convolution.
-  There's a common pattern of enlarging the input to a convolution using a
+  There"s a common pattern of enlarging the input to a convolution using a
   resize operation, and also using MirrorPad to extend the boundaries to that
-  zero edge pixels don't bleed inwards when convolving. This routine looks for
+  zero edge pixels don"t bleed inwards when convolving. This routine looks for
   that pattern of operations, and fuses them together into a Conv2DWithResizeOp.
   Args:
     input_graph_def: A GraphDef containing a model.
@@ -410,7 +410,7 @@ def fuse_resize_and_conv(input_graph_def, output_node_names):
     if not mirror_pad_op and not resize_op:
       continue
 
-    # We're replacing this node, so make sure the old one is removed.
+    # We"re replacing this node, so make sure the old one is removed.
     node_reference_count[conv_op.name] = 0
     if mirror_pad_op:
       node_reference_count[mirror_pad_op.name] -= 1
