@@ -42,60 +42,15 @@ class Preprocessing:
                 out_list.append(tf.cast(tensor, tf.uint8))
             return out_list
 
-    def _get_random_scale(self):
-        if self.random_scale_range[0] < 0:
-            raise ValueError("min_scale_factor cannot be nagative value")
-        if self.random_scale_range[0] > self.random_scale_range[1]:
-            raise ValueError("min_scale_factor must be larger than max_scale_factor")
-        elif self.random_scale_range[0] == self.random_scale_range[0]:
-            return tf.cast(self.random_scale_range[0], tf.float32)
-        else:
-            return tf.random_uniform([], minval=self.random_scale_range[0], maxval=self.random_scale_range[0])
-
-    def _randomly_scale_image_and_label(self):
-        """Randomly scales image and label.
-
-        Args:
-          image: Image with original_shape [height, width, 3].
-          label: Label with original_shape [height, width, 1].
-          scale: The value to scale image and label.
-
-        Returns:
-          Scaled image and label.
-        """
-        scale = self._get_random_scale()
-        h, w, c = get_shape(self.image)
-        new_dim = tf.cast(tf.cast([h, w], tf.float32) * scale, tf.int32)
-
-        # Need squeeze and expand_dims because image interpolation takes
-        # 4D tensors as input.
-        self.image = tf.squeeze(tf.image.resize_bilinear(tf.expand_dims(self.image, 0), new_dim, align_corners=True), [0])
-        self.gt = tf.squeeze(tf.image.resize_nearest_neighbor(tf.expand_dims(self.gt, 0), new_dim, align_corners=True), [0])
-
-    def _random_crop(self):
-        # concat in channel
-        image_gt_pair = tf.concat([self.image, self.gt], 2)
-        image_gt_pair_cropped = tf.image.random_crop(image_gt_pair, [self.crop_size[0], self.crop_size[1], 4])
-        self.image = image_gt_pair_cropped[:, :, :3]
-        self.gt = image_gt_pair_cropped[:, :, 3:]
-
-    def _flip(self):
-        if self.flip_probability > 0:
-            do_flip = tf.less_equal(tf.random_uniform([]), self.flip_probability)
-            self.image = tf.cond(do_flip, lambda: tf.image.flip_left_right(self.image), lambda: self.image)
-            self.gt = tf.cond(do_flip, lambda: tf.image.flip_left_right(self.gt), lambda: self.gt)
-
-    def _rotate(self):
-        if self.rotate_probability > 0:
-            on_off = tf.less_equal(tf.random_uniform([]), self.rotate_probability)
-            if self.rotate_angle_by90:
-                rotate_k = tf.random_uniform((), maxval=3, dtype=tf.int32)
-                self.image = tf.cond(on_off, lambda: tf.image.rot90(self.image, rotate_k), lambda: self.image)
-                self.gt = tf.cond(on_off, lambda: tf.image.rot90(self.gt, rotate_k), lambda: self.gt)
-            else:
-                angle = tf.random.uniform((), minval=self.rotate_angle_range[0], maxval=self.rotate_angle_range[1], dtype=tf.float32)
-                self.image = tf.cond(on_off, lambda: tf.contrib.image.rotate(self.image, angle, interpolation="BILINEAR"))
-                self.gt = tf.cond(on_off, lambda: tf.contrib.image.rotate(self.gt, angle, interpolation="NEAREST"))
+    @staticmethod
+    def draw_grid(im, grid_num):
+        # Draw grid lines
+        grid_size = int(im.shape[1] / grid_num)
+        for i in range(0, im.shape[1], grid_size):
+            cv.line(im, (i, 0), (i, im.shape[0]), color=(255,))
+        for j in range(0, im.shape[0], grid_size):
+            cv.line(im, (0, j), (im.shape[1], j), color=(255,))
+        return im
 
     @staticmethod
     def _warp(image, gt, prob, ratio, warp_crop_prob):
@@ -170,39 +125,60 @@ class Preprocessing:
             indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1)), np.reshape(z, (-1, 1))
             return map_coordinates(img_gt_pair, indices, order=1, mode='reflect').reshape(shape)
 
-    @staticmethod
-    def draw_grid(im, grid_num):
-        # Draw grid lines
-        grid_size = int(im.shape[1] / grid_num)
-        for i in range(0, im.shape[1], grid_size):
-            cv.line(im, (i, 0), (i, im.shape[0]), color=(255,))
-        for j in range(0, im.shape[0], grid_size):
-            cv.line(im, (0, j), (im.shape[1], j), color=(255,))
-        return im
-
-    def normalize_input(self, input_tensor, scale=1.3):
-        # set pixel values from 0 to 1
-        # return tf.cast(input_tensor, tf.float32) / 255.0
-        if scale != 1.0:
-            return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * scale
+    def _get_random_scale(self):
+        if self.random_scale_range[0] < 0:
+            raise ValueError("min_scale_factor cannot be nagative value")
+        if self.random_scale_range[0] > self.random_scale_range[1]:
+            raise ValueError("min_scale_factor must be larger than max_scale_factor")
+        elif self.random_scale_range[0] == self.random_scale_range[0]:
+            return tf.cast(self.random_scale_range[0], tf.float32)
         else:
-            return tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1
+            return tf.random_uniform([], minval=self.random_scale_range[0], maxval=self.random_scale_range[0])
 
-    def normalize_input2(self, input_tensor):
-        # set pixel values from 0 to 1
-        # return tf.cast(input_tensor, tf.float32) / 255.0
-        return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * 1.0
+    def _randomly_scale_image_and_label(self):
+        """Randomly scales image and label.
 
-    def normalize_input3(self, input_tensor):
-        b, h, w, c = get_shape(input_tensor)
-        mean = [0.485, 0.456, 0.406]
-        mean = np.expand_dims(np.expand_dims(mean, 0), 0)
-        mean = tf.constant(np.stack([mean] * b, 0), tf.float32)
-        std = [0.229, 0.224, 0.225]
-        std = np.expand_dims(np.expand_dims(std, 0), 0)
-        std = tf.constant(np.stack([std] * b, 0), tf.float32)
-        normalized = (input_tensor / 255.0 - mean) / std
-        return normalized
+        Args:
+          image: Image with original_shape [height, width, 3].
+          label: Label with original_shape [height, width, 1].
+          scale: The value to scale image and label.
+
+        Returns:
+          Scaled image and label.
+        """
+        scale = self._get_random_scale()
+        h, w, c = get_shape(self.image)
+        new_dim = tf.cast(tf.cast([h, w], tf.float32) * scale, tf.int32)
+
+        # Need squeeze and expand_dims because image interpolation takes
+        # 4D tensors as input.
+        self.image = tf.squeeze(tf.image.resize_bilinear(tf.expand_dims(self.image, 0), new_dim, align_corners=True), [0])
+        self.gt = tf.squeeze(tf.image.resize_nearest_neighbor(tf.expand_dims(self.gt, 0), new_dim, align_corners=True), [0])
+
+    def _random_crop(self):
+        # concat in channel
+        image_gt_pair = tf.concat([self.image, self.gt], 2)
+        image_gt_pair_cropped = tf.image.random_crop(image_gt_pair, [self.crop_size[0], self.crop_size[1], 4])
+        self.image = image_gt_pair_cropped[:, :, :3]
+        self.gt = image_gt_pair_cropped[:, :, 3:]
+
+    def _flip(self):
+        if self.flip_probability > 0:
+            do_flip = tf.less_equal(tf.random_uniform([]), self.flip_probability)
+            self.image = tf.cond(do_flip, lambda: tf.image.flip_left_right(self.image), lambda: self.image)
+            self.gt = tf.cond(do_flip, lambda: tf.image.flip_left_right(self.gt), lambda: self.gt)
+
+    def _rotate(self):
+        if self.rotate_probability > 0:
+            on_off = tf.less_equal(tf.random_uniform([]), self.rotate_probability)
+            if self.rotate_angle_by90:
+                rotate_k = tf.random_uniform((), maxval=3, dtype=tf.int32)
+                self.image = tf.cond(on_off, lambda: tf.image.rot90(self.image, rotate_k), lambda: self.image)
+                self.gt = tf.cond(on_off, lambda: tf.image.rot90(self.gt, rotate_k), lambda: self.gt)
+            else:
+                angle = tf.random.uniform((), minval=self.rotate_angle_range[0], maxval=self.rotate_angle_range[1], dtype=tf.float32)
+                self.image = tf.cond(on_off, lambda: tf.contrib.image.rotate(self.image, angle, interpolation="BILINEAR"))
+                self.gt = tf.cond(on_off, lambda: tf.contrib.image.rotate(self.gt, angle, interpolation="NEAREST"))
 
     def _random_quality(self):
         do_quality = tf.less_equal(tf.random_uniform([]), self.random_quality_prob)
@@ -401,3 +377,27 @@ class Preprocessing:
                 self.gt = img_gt_pair[:, :, 3]
                 self.gt.set_shape([self.crop_size[0], self.crop_size[1]])
                 self.gt = tf.expand_dims(self.gt, 2)
+
+    def normalize_input(self, input_tensor, scale=1.3):
+        # set pixel values from 0 to 1
+        # return tf.cast(input_tensor, tf.float32) / 255.0
+        if scale != 1.0:
+            return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * scale
+        else:
+            return tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1
+
+    def normalize_input2(self, input_tensor):
+        # set pixel values from 0 to 1
+        # return tf.cast(input_tensor, tf.float32) / 255.0
+        return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * 1.0
+
+    def normalize_input3(self, input_tensor):
+        b, h, w, c = get_shape(input_tensor)
+        mean = [0.485, 0.456, 0.406]
+        mean = np.expand_dims(np.expand_dims(mean, 0), 0)
+        mean = tf.constant(np.stack([mean] * b, 0), tf.float32)
+        std = [0.229, 0.224, 0.225]
+        std = np.expand_dims(np.expand_dims(std, 0), 0)
+        std = tf.constant(np.stack([std] * b, 0), tf.float32)
+        normalized = (input_tensor / 255.0 - mean) / std
+        return normalized

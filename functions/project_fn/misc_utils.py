@@ -25,7 +25,7 @@ def list_getter(dir_name, extension, must_include=None):
                             file_list.append(os.path.join(path, name))
                     else:
                         file_list.append(os.path.join(path, name))
-        file_list.sort(key=lambda var: [int(x) if x.isdigit() else x for x in re.findall(r'[^0-9]|[0-9]+', var)])
+        file_list.sort(key=lambda f: int(re.sub('\D', '', f)))
     return file_list
 
 

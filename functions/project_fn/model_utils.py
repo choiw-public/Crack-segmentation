@@ -10,13 +10,6 @@ import os
 import collections
 import time
 
-Clone = collections.namedtuple("Clone",
-                               ["logit",  # Whatever model_fn() returned.
-                                "scope",  # The scope used to create it.
-                                "device",  # The device used to create.
-                                ])
-
-
 def get_loss_fn(loss_fn_name):
     if loss_fn_name == "miou":
         return loss_functions.miou_loss

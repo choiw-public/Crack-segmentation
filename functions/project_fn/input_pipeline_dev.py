@@ -44,8 +44,8 @@ class InputPipeline(Preprocessing):
         if self.is_train:
             data = data.repeat()
         data = data.shuffle(batch_size * 10)
-        data = data.map(self._tfrecord_parser, tf.data.experimental.AUTOTUNE).batch(batch_size, self._drop_remainder)
-        data = data.prefetch(tf.data.experimental.AUTOTUNE)
+        data = data.map(self._tfrecord_parser, 4).batch(batch_size, self._drop_remainder)
+        data = data.prefetch(4)  # tf.data.experimental.AUTOTUNE
         iterator = data.make_one_shot_iterator()
         return iterator.get_next()
 
@@ -80,21 +80,23 @@ class InputPipeline(Preprocessing):
         else:
             batch_blur = None
 
-        keys = batch_main.keys()
-        batch_whole = dict()
-        for key in keys:
-            value = [batch_main[key]]
-            if batch_background:
-                value.append(batch_background[key])
-            if batch_blur:
-                value.append(batch_blur[key])
-            batch_whole[key] = tf.concat(value, 0)
-
-        indices = tf.range(start=0, limit=self.batch_size, dtype=tf.int32)
-        shuffled_indices = tf.random.shuffle(indices)
-        for key in keys:
-            batch_whole[key] = tf.gather(batch_whole[key], shuffled_indices)
-        self.data = batch_whole
+        if batch_background or batch_blur:
+            keys = batch_main.keys()
+            batch_whole = dict()
+            for key in keys:
+                value = [batch_main[key]]
+                if batch_background:
+                    value.append(batch_background[key])
+                if batch_blur:
+                    value.append(batch_blur[key])
+                batch_whole[key] = tf.concat(value, 0)
+            indices = tf.range(start=0, limit=self.batch_size, dtype=tf.int32)
+            shuffled_indices = tf.random.shuffle(indices)
+            for key in keys:
+                batch_whole[key] = tf.gather(batch_whole[key], shuffled_indices)
+            self.data = batch_whole
+        else:
+            self.data = batch_main
 
     def _build_input_pipeline(self):
         if self.phase == "train":
@@ -135,8 +137,8 @@ class InputPipeline(Preprocessing):
         img_data = tf.data.Dataset.from_tensor_slices(img_list)
         seg_data = tf.data.Dataset.from_tensor_slices(seg_list)
         data = tf.data.Dataset.zip((img_data, seg_data))
-        data = data.map(self._image_parser, tf.data.experimental.AUTOTUNE).batch(self.batch_size, False)
-        data = data.prefetch(tf.data.experimental.AUTOTUNE)
+        data = data.map(self._image_parser, 4).batch(self.batch_size, False)
+        data = data.prefetch(4)  # tf.data.experimental.AUTOTUNE
         iterator = data.make_initializable_iterator()
         self.data = iterator.get_next()
         self.init = iterator.initializer
