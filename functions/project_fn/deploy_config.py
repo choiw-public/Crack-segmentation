@@ -15,6 +15,7 @@ def deploy(model_name, phase):
         os.makedirs(config["ckpt_dir"], exist_ok=True)
     elif phase == "eval":
         config["is_train"] = False
+        config["blur_dir"] = None
         config["background_dir"] = None
         config["bnorm_trainable"] = None
         config["eval_log_dir"] = "/".join([result_dir, "eval_metric"])

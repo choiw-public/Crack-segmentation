@@ -33,13 +33,13 @@ class Vgg19:
 
     def build(self, rgb):
         """
-        load variable from npy to build the VGG
+        load variable from npy to _build_input_pipeline the VGG
 
         :param rgb: rgb image [batch, height, width, 3] values scaled [-1, 1]
         """
 
         start_time = time.time()
-        print("build model started")
+        print("_build_input_pipeline model started")
         rgb_scaled = ((rgb + 1) * 255.0) / 2.0
 
         # Convert RGB to BGR
@@ -108,7 +108,7 @@ class Vgg19:
         #        self.prob = tf.nn.softmax(self.fc8, name="prob")
 
         self.data_dict = None
-        print(("build model finished: %ds" % (time.time() - start_time)))
+        print(("_build_input_pipeline model finished: %ds" % (time.time() - start_time)))
 
     def avg_pool(self, bottom, name):
         return tf.nn.avg_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME", name=name)

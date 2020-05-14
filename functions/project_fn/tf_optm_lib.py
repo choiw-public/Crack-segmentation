@@ -26,7 +26,7 @@ This script takes a frozen GraphDef file (where the weight variables have been
 converted into constants by the freeze_graph script) and outputs a new GraphDef
 with the optimizations applied.
 An example of command-line usage is:
-bazel build tensorflow/python/tools:optimize_for_inference && \
+bazel _build_input_pipeline tensorflow/python/tools:optimize_for_inference && \
 bazel-bin/tensorflow/python/tools/optimize_for_inference \
 --input_graph=some_graph_def.pb \
 --output_graph=/tmp/optimized_graph.pb \

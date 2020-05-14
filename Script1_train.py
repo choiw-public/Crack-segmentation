@@ -1,13 +1,15 @@
 from functions.project_fn.deploy_config import deploy
 from functions.project_fn.input_pipeline_dev import InputPipeline
 import tensorflow as tf
+tf.random.set_random_seed(0)
+import matplotlib.pyplot as plt
+import numpy as np
 
 model_name = "model_last_continue"
-config = deploy(model_name, "train")
+config = deploy(model_name, "eval")
 
 # # I don"t know why but below two lines should be included
 input_pipe = InputPipeline(config)
-input_pipe.build()
 tf_img = input_pipe.data['input']
 tf_gt = input_pipe.data['gt']
 
