@@ -6,16 +6,15 @@ import multiprocessing
 import os
 
 
-class InputPipeline(Preprocessing):
+class InputPipeline:
     def __init__(self, config):
         self.tfrecord_feature = {"image": tf.FixedLenFeature((), tf.string, default_value=""),
                                  "filename": tf.FixedLenFeature((), tf.string, default_value=""),
                                  "height": tf.FixedLenFeature((), tf.int64, default_value=0),
                                  "width": tf.FixedLenFeature((), tf.int64, default_value=0),
                                  "segmentation": tf.FixedLenFeature((), tf.string, default_value="")}
-        super(InputPipeline, self).__init__(config)
-        self.drop_remainder = True if self.phase == "Train" else False
         self.config = config
+        self.drop_remainder = True if self.phase == "Train" else False
 
     def __getattr__(self, item):
         try:
@@ -23,24 +22,27 @@ class InputPipeline(Preprocessing):
         except AttributeError:
             raise AttributeError("'config' has no attribute '%s'" % item)
 
-    def _tfrecord_parser(self, tfrecord):
-        parsed = tf.parse_single_example(tfrecord, self.tfrecord_feature)
-        img = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
-        fname = tf.convert_to_tensor(parsed["filename"])
-        seg = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
-        img, seg = self.preprocessing(img, seg)
-        return {"input": img, "filename": fname, "gt": seg}
-
     def _get_batch_and_init(self, tfrecord_dir, batch_size):
         tfrecord_list = list_getter(tfrecord_dir, extension="tfrecord")
         data = tf.data.TFRecordDataset(tfrecord_list)
         if self.is_train:
             data = data.repeat()
         data = data.shuffle(batch_size * 10)
-        data = data.map(self._tfrecord_parser, num_parallel_calls=tf.data.experimental.AUTOTUNE).batch(batch_size, drop_remainder=self.drop_remainder)
+
+        def parser(data):
+            parsed = tf.parse_single_example(data, self.tfrecord_feature)
+            image = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
+            fname = tf.convert_to_tensor(parsed["filename"])
+            gt = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
+            preprocessing = Preprocessing(image, gt, self.config)
+            preprocessing.process()
+            image, gt = preprocessing.image, preprocessing.gt
+            return {"input": image, "filename": fname, "gt": gt}
+
+        data = data.map(parser, num_parallel_calls=tf.data.experimental.AUTOTUNE).batch(batch_size, drop_remainder=self.drop_remainder)
         data = data.prefetch(tf.data.experimental.AUTOTUNE)
         iterator = data.make_one_shot_iterator()
-        return iterator.get_next(), iterator.initializer
+        return iterator.get_next()
 
     def _input_from_tfrecord(self):
         if self.background_dir:
@@ -60,28 +62,18 @@ class InputPipeline(Preprocessing):
         if batch_size_main < 0:
             raise ValueError("Unexpected batch_size_main: %s" % batch_size_main)
 
-        # def parse_fn(tfrecord):
-        #     parsed = tf.parse_single_example(tfrecord, self.tfrecord_feature)
-        #     img = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
-        #     fname = tf.convert_to_tensor(parsed["filename"])
-        #     seg = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
-        #     img, seg = self._preprocessing(img, seg)
-        #     return {"input": img, "filename": fname, "gt": seg}
-
         # for main images
-        batch_main, init_main = self._get_batch_and_init(self.dataset_dir, batch_size_main)
+        batch_main = self._get_batch_and_init(self.dataset_dir, batch_size_main)
 
         # for background images
         if batch_size_background > 0:
-            batch_background, init_background = self._get_batch_and_init(self.background_dir, batch_size_background)
+            batch_background = self._get_batch_and_init(self.background_dir, batch_size_background)
         else:
             batch_background = None
-            init_background = None
         if batch_size_blur > 0:
-            batch_blur, init_blur = self._get_batch_and_init(self.blur_dir, batch_size_blur)
+            batch_blur = self._get_batch_and_init(self.blur_dir, batch_size_blur)
         else:
             batch_blur = None
-            init_blur = None
 
         keys = batch_main.keys()
         batch_whole = dict()
@@ -97,21 +89,11 @@ class InputPipeline(Preprocessing):
         shuffled_indices = tf.random.shuffle(indices)
         for key in keys:
             batch_whole[key] = tf.gather(batch_whole[key], shuffled_indices)
-        whole_init = tf.group([init_main, init_blur, init_background])
-        return batch_whole, whole_init
-
-    def _tfrecord_pipeline(self):
-        print("=============================== Attention ===============================")
-        print("Building input pipeline with tfrecord...")
-        in_data, init = self._input_from_tfrecord()
-        if tf.executing_eagerly():
-            return in_data
-        else:
-            return in_data, init
+        self.data = batch_whole
 
     def build(self):
         if self.phase == "train":
-            return self._tfrecord_pipeline()
+            self._input_from_tfrecord()
         elif self.phase in ["eval", "vis"]:
             if self.data_type == "image":
                 return self._image_input_pipeline()

@@ -227,9 +227,9 @@ def fold_batch_norms(input_graph_def):
       continue
     weights = values_from_const(weights_op)
     if conv_op.op == "Conv2D":
-      channel_count = weights.shape[3]
+      channel_count = weights.get_shape[3]
     elif conv_op.op == "DepthwiseConv2dNative":
-      channel_count = weights.shape[2] * weights.shape[3]
+      channel_count = weights.get_shape[2] * weights.get_shape[3]
 
     mean_op = node_from_map(input_node_map,
                             node.input[INPUT_ORDER[node.op].index("mean_op")])
@@ -239,9 +239,9 @@ def fold_batch_norms(input_graph_def):
                          " run first?" % (node.name, mean_op))
       continue
     mean_value = values_from_const(mean_op)
-    if mean_value.shape != (channel_count,):
-      tf_logging.warning("Incorrect shape for mean, found %s, expected %s,"
-                         " for node %s" % (str(mean_value.shape), str(
+    if mean_value.get_shape != (channel_count,):
+      tf_logging.warning("Incorrect get_shape for mean, found %s, expected %s,"
+                         " for node %s" % (str(mean_value.get_shape), str(
                              (channel_count,)), node.name))
       continue
 
@@ -253,9 +253,9 @@ def fold_batch_norms(input_graph_def):
                          " run first?" % (node.name, var_op))
       continue
     var_value = values_from_const(var_op)
-    if var_value.shape != (channel_count,):
-      tf_logging.warning("Incorrect shape for var, found %s, expected %s,"
-                         " for node %s" % (str(var_value.shape), str(
+    if var_value.get_shape != (channel_count,):
+      tf_logging.warning("Incorrect get_shape for var, found %s, expected %s,"
+                         " for node %s" % (str(var_value.get_shape), str(
                              (channel_count,)), node.name))
       continue
 
@@ -267,9 +267,9 @@ def fold_batch_norms(input_graph_def):
                          " run first?" % (node.name, beta_op))
       continue
     beta_value = values_from_const(beta_op)
-    if beta_value.shape != (channel_count,):
-      tf_logging.warning("Incorrect shape for beta, found %s, expected %s,"
-                         " for node %s" % (str(beta_value.shape), str(
+    if beta_value.get_shape != (channel_count,):
+      tf_logging.warning("Incorrect get_shape for beta, found %s, expected %s,"
+                         " for node %s" % (str(beta_value.get_shape), str(
                              (channel_count,)), node.name))
       continue
 
@@ -281,9 +281,9 @@ def fold_batch_norms(input_graph_def):
                          " run first?" % (node.name, gamma_op))
       continue
     gamma_value = values_from_const(gamma_op)
-    if gamma_value.shape != (channel_count,):
-      tf_logging.warning("Incorrect shape for gamma, found %s, expected %s,"
-                         " for node %s" % (str(gamma_value.shape), str(
+    if gamma_value.get_shape != (channel_count,):
+      tf_logging.warning("Incorrect get_shape for gamma, found %s, expected %s,"
+                         " for node %s" % (str(gamma_value.get_shape), str(
                              (channel_count,)), node.name))
       continue
 
@@ -313,7 +313,7 @@ def fold_batch_norms(input_graph_def):
         it[0] *= current_scale
         it.iternext()
     elif conv_op.op == "DepthwiseConv2dNative":
-      channel_multiplier = weights.shape[3]
+      channel_multiplier = weights.get_shape[3]
       while not it.finished:
         current_scale = scale_value[it.multi_index[2] * channel_multiplier +
                                     it.multi_index[3]]
@@ -325,7 +325,7 @@ def fold_batch_norms(input_graph_def):
     scaled_weights_op.attr["dtype"].CopyFrom(weights_op.attr["dtype"])
     scaled_weights_op.attr["value"].CopyFrom(
         attr_value_pb2.AttrValue(tensor=tensor_util.make_tensor_proto(
-            scaled_weights, weights.dtype.type, weights.shape)))
+            scaled_weights, weights.dtype.type, weights.get_shape)))
     new_conv_op = node_def_pb2.NodeDef()
     new_conv_op.CopyFrom(conv_op)
     offset_op = node_def_pb2.NodeDef()

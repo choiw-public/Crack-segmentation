@@ -116,9 +116,9 @@ def gradients(ys, xs, grad_ys=None, checkpoints="collection", **kwargs):
                 try:
                     return [int(e if e.value is not None else 64) for e in t]
                 except:
-                    return [0]  # unknown shape
+                    return [0]  # unknown get_shape
 
-            ts_all = [t for t in ts_all if np.prod(fixdims(t.shape)) > MIN_CHECKPOINT_NODE_SIZE]
+            ts_all = [t for t in ts_all if np.prod(fixdims(t.get_shape)) > MIN_CHECKPOINT_NODE_SIZE]
             ts_all = [t for t in ts_all if "L2Loss" not in t.name]
             ts_all = [t for t in ts_all if "entropy" not in t.name]
             ts_all = [t for t in ts_all if "FusedBatchNorm" not in t.name]
@@ -301,9 +301,9 @@ def gradients(ys, xs, grad_ys=None, checkpoints="collection", **kwargs):
         def _unsparsify(x):
             if not isinstance(x, tf.IndexedSlices):
                 return x
-            assert x.dense_shape is not None, "memory_saving_gradients encountered sparse gradients of unknown shape"
+            assert x.dense_shape is not None, "memory_saving_gradients encountered sparse gradients of unknown get_shape"
             indices = x.indices
-            while indices.shape.ndims < x.values.shape.ndims:
+            while indices.get_shape.ndims < x.values.get_shape.ndims:
                 indices = tf.expand_dims(indices, -1)
             return tf.scatter_nd(indices, x.values, x.dense_shape)
 

@@ -13,7 +13,7 @@ import re
 
 
 def get_tensor_shape(tensor):
-    _static_shape = tensor.shape.as_list()
+    _static_shape = tensor.get_shape().as_list()
     _dynamic_shape = tf.unstack(tf.shape(tensor))
     _dims = [s[1] if s[0] is None else s[0] for s in zip(_static_shape, _dynamic_shape)]
     return _dims
@@ -123,7 +123,7 @@ def count_trainable():
     all_trainables = tf.trainable_variables()
     parameters = 0
     for variable in all_trainables:
-        parameters += np.prod([int(para) for para in variable.shape])
+        parameters += np.prod([int(para) for para in variable.get_shape])
     print(parameters)
 
 
@@ -431,7 +431,7 @@ def skeletonize(binary_image):
     sizes = stats[1:, -1]
     nb_components = nb_components - 1
     min_size = 10
-    skel2 = np.zeros(output.shape)
+    skel2 = np.zeros(output.get_shape)
     for i in range(0, nb_components):
         if sizes[i] >= min_size:
             skel2[output == i + 1] = 1
@@ -439,7 +439,7 @@ def skeletonize(binary_image):
 
 
 def get_crop_coordinates(h_cnt, w_cnt, src_img, crop_size):
-    src_img_h, src_img_w, _ = src_img.shape
+    src_img_h, src_img_w, _ = src_img.get_shape
     _h1 = h_cnt - (crop_size - 1) / 2
     if _h1 < 0:
         _h1 = 0

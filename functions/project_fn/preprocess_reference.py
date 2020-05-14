@@ -23,7 +23,7 @@ FLAGS = flags.FLAGS
 
 
 def get_tensor_shape(tensor):
-    static_shape = tensor.shape.as_list()
+    static_shape = tensor.get_shape.as_list()
     dynamic_shape = tf.unstack(tf.shape(tensor))
     dims = [s[1] if s[0] is None else s[0] for s in zip(static_shape, dynamic_shape)]
     return dims
@@ -509,7 +509,7 @@ def add_random_shade(img_src):
     shade_src = tf.cond(tf.equal(tf.random_uniform((), maxval=2, dtype=tf.int32), tf.constant(1)),
                         lambda: value_switch(shade_src), lambda: shade_src)
     img_src = tf.divide(img_src, 255.0)
-    row, col, _ = img_src.shape
+    row, col, _ = img_src.get_shape
     shade_src = tf.expand_dims(tf.expand_dims(shade_src, 0), 3)
     shade_src = tf.image.resize_nearest_neighbor(shade_src, [row, col])
     alpha = tf.random_uniform((), minval=0.5, maxval=1.0, dtype=tf.float32)

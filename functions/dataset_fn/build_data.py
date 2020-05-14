@@ -40,12 +40,12 @@ class ImageReader(object):
 
     def read_image_dims(self, image_data):
         image = self.decode_image(image_data)
-        return image.shape
+        return image.get_shape
 
     def decode_image(self, image_data):
         image = self._session.run(self._decode,
                                   feed_dict={self._decode_data: image_data})
-        if len(image.shape) != 3 or image.shape[2] not in (1, 3):
+        if len(image.get_shape) != 3 or image.get_shape[2] not in (1, 3):
             raise ValueError("The image channels not supported.")
 
         return image

@@ -75,7 +75,7 @@ def calculate_segmentation_metric(cmatrix):
     f1 = 2 * precision * recall / (precision + recall)
     iou = tp / (tp + fp + fn)  # iou of each class. [batch, class]
     miou = iou.mean()  # miou
-    if iou.shape[0] <= 2:
+    if iou.get_shape[0] <= 2:
         return [precision[1], recall[1], f1[1], miou]
     else:
         return [miou]
@@ -346,7 +346,7 @@ def start_vis(tf_filename, tf_result, sess, config, tpfnfp=False):
                 deblur_filename = os.path.join(save_folder, image_id)
 
             if config.task in ["segmentation", "deblur-segmentation"]:
-                prediction = np.argmax(result, len(result.shape) - 1)
+                prediction = np.argmax(result, len(result.get_shape) - 1)
                 if tpfnfp:
                     prediction = change_colormap_tpfnfp(prediction, gt)
                 prediction_vis = colormap[prediction][:, :, ::-1]

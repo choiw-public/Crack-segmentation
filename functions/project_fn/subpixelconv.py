@@ -8,11 +8,11 @@ class SubpixelConv2D(Layer):
     where r is the scaling factor, default to 4
     # Arguments
     upsampling_factor: the scaling factor
-    # Input shape
+    # Input get_shape
         Arbitrary. Use the keyword argument `input_shape`
         (tuple of integers, does not include the samples axis)
         when using this layer as the first layer in a model.
-    # Output shape
+    # Output get_shape
         the second and the third dimension increased by a factor of
         `upsampling_factor`; the last layer decreased by a factor of
         `upsampling_factor^2`.

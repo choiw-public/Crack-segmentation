@@ -75,7 +75,7 @@ def add_ssim_reg_to_graph(tensor, name="ssim_reg"):
 
 def batch_instance_norm(x, scope="bin"):
     with tf.variable_scope(scope):
-        ch = x.shape[-1]
+        ch = x.get_shape[-1]
         eps = 1e-5
 
         batch_mean, batch_sigma = tf.nn.moments(x, axes=[0, 1, 2], keep_dims=True)

@@ -8,6 +8,7 @@ def deploy(model_name, phase):
     config_name = ".".join(["models", model_name, "configs", "config_%s" % phase])
     config = imp.import_module(config_name).config
     result_dir = "/".join(["./models", model_name, "results"])
+    config['phase'] = phase
     if phase == "train":
         config["is_train"] = True
         config["ckpt_dir"] = "/".join([result_dir, "saved_model"])

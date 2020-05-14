@@ -22,7 +22,7 @@ def miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_classes:
-        raise ValueError("Something wrong. Check the shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
 
     # for calculating iou loss with logit
     intersection_logit = prob_map * onehot_gt  # [batch, height, width, class]
@@ -63,7 +63,7 @@ def weighted_miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
 
     # for calculating iou loss with logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
@@ -94,7 +94,7 @@ def mf1_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
 
     # for calculating f1 loss with logit
     tp_logit = tf.reduce_sum(logit * onehot_gt, [0, 1, 2])
@@ -123,7 +123,7 @@ def mf1_miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
 
     # for calculating iou loss with logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
@@ -161,7 +161,7 @@ def miou_recall_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
 
     # for calculating iou loss with logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
@@ -195,7 +195,7 @@ def xntropy_loss(logit, ground_truth, config):
         if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(one_hot_labels):
             logit = tf.reshape(logit, shape=[-1, config.num_classes])
             if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(one_hot_labels):
-                raise ValueError("unexpted logit shape")
+                raise ValueError("unexpted logit get_shape")
     return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=one_hot_labels, logits=logit))
 
 

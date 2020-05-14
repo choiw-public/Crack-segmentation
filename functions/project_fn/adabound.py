@@ -80,20 +80,20 @@ class AdaBoundOptimizer(tf.train.Optimizer):
 
             m = tf.get_variable(
                 name=param_name + "/adabound_m",
-                shape=param.shape.as_list(),
+                shape=param.get_shape.as_list(),
                 dtype=tf.float32,
                 trainable=False,
                 initializer=tf.zeros_initializer())
             v = tf.get_variable(
                 name=param_name + "/adabound_v",
-                shape=param.shape.as_list(),
+                shape=param.get_shape.as_list(),
                 dtype=tf.float32,
                 trainable=False,
                 initializer=tf.zeros_initializer())
             if self._amsbound:
                 v_hat = tf.get_variable(
                     name=param_name + "/adabound_v_hat",
-                    shape=param.shape.as_list(),
+                    shape=param.get_shape.as_list(),
                     dtype=tf.float32,
                     trainable=False,
                     initializer=tf.zeros_initializer())

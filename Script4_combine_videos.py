@@ -55,7 +55,7 @@ def draw_text(img, text, left_top_coord, size):
 
 
 def make_edge(img):
-    h, w, _ = img.shape
+    h, w, _ = img.get_shape
     vertical = np.ones((h, edge_thickness)).astype(np.uint8) * 128
     vertical = np.stack([np.zeros_like(vertical), vertical, np.zeros_like(vertical)], 2)
     img = np.concatenate([vertical, img, vertical], 1)
@@ -69,7 +69,7 @@ def combine(raw_frame, mask_frame, main_frame, source):
     canvas = np.zeros((canvas_height, canvas_width, 3)).astype(np.uint8)
 
     # resizing - raw frame
-    frame_height, frame_width, _ = raw_frame.shape
+    frame_height, frame_width, _ = raw_frame.get_shape
     raw_frame_resize_factor = min(float(raw_h_limit) / float(frame_height), float(raw_w_limit) / float(frame_width))
     raw_frame = cv.resize(raw_frame, (int(frame_width * raw_frame_resize_factor), int(frame_height * raw_frame_resize_factor)))
     raw_frame = make_edge(raw_frame)
