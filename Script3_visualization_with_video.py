@@ -1,5 +1,5 @@
 from functions.project_fn.deploy_config import DeployConfig
-from functions.project_fn.misc_utils import get_ckpt, list_getter
+from functions.project_fn.utils import get_ckpt, list_getter
 import cv2 as cv
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -12,7 +12,7 @@ tested_video_dir = "./video_to_combine(389000)"
 
 config = DeployConfig(model_name, "vis")
 ph_input = tf.placeholder(config.dtype, [None, None, None, 3])
-data = {"input": ph_input, "gt": None}
+data = {"image": ph_input, "gt": None}
 ckpt = get_ckpt(config)
 video_list = []
 for ext in ["mp4", "mov"]:

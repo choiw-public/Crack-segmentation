@@ -1,6 +1,6 @@
 import tensorflow as tf
-from functions.project_fn.misc_utils import get_tensor_shape
-from functions.project_fn import misc_utils
+from functions.project_fn.utils import get_tensor_shape
+from functions.project_fn import utils
 from functions.project_fn.preprocess_developing import add_gaussian_noise, rgb_perturb, random_quality
 
 
@@ -75,7 +75,7 @@ def create_blur_images_individual(parsed_data, config):
             kernel = tf.cond(tf.equal(role_dice, 1), lambda: tf.contrib.image.rotate(kernel_data, rnd_angle, interpolation="BILINEAR"), lambda: kernel_data)
             kernel = tf.cond(tf.equal(role_dice, 2), lambda: tf.image.resize_bicubic(kernel[tf.newaxis, :, :, tf.newaxis], [new_h, new_w]), lambda: kernel)
             kernel = tf.squeeze(kernel)
-            kernel = misc_utils.remap_kernel_to_fixed_odd_squre(kernel_data, 33)
+            kernel = utils.remap_kernel_to_fixed_odd_squre(kernel_data, 33)
             # kernel = tf.contrib.image.rotate(kernel, rnd_angle, interpolation="BILINEAR")
             return kernel / tf.reduce_sum(tf.squeeze(kernel))
 
@@ -101,7 +101,7 @@ def create_blur_images_individual(parsed_data, config):
     blur_kernel_bank = tf.split(blur_kernel_bank, len(config.gpu_ids), 0)
 
     for i, gpu_id in enumerate(config.gpu_ids):
-        sharp_images = parsed_data["input"]
+        sharp_images = parsed_data["image"]
         clone_batch, h, w, c = get_tensor_shape(sharp_images)
         corrupted_imgs = []
         with tf.device("/device:GPU:" + str(gpu_id)):
@@ -125,5 +125,5 @@ def create_blur_images_individual(parsed_data, config):
             corrupted_imgs = tf.concat(corrupted_imgs, 0)
             corrupted_imgs = center_crop(corrupted_imgs, config)
         corrupted_imgs.set_shape([clone_batch, None, None, c])
-        new_parsed_data.append({"input": corrupted_imgs, "gt": parsed_data["gt"], "tf_kernel": blur_kernel_bank[gpu_id]})
+        new_parsed_data.append({"image": corrupted_imgs, "gt": parsed_data["gt"], "tf_kernel": blur_kernel_bank[gpu_id]})
     return new_parsed_data

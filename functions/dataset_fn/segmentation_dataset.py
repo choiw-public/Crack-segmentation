@@ -25,7 +25,7 @@ DatasetDescriptor = collections.namedtuple(
 
 _CITYSCAPES_INFORMATION = DatasetDescriptor(
     splits_to_sizes={
-        "train": 2975,
+        "_train": 2975,
         "val": 500,
     },
     num_classes=19,
@@ -34,7 +34,7 @@ _CITYSCAPES_INFORMATION = DatasetDescriptor(
 
 _PASCAL_VOC_SEG_INFORMATION = DatasetDescriptor(
     splits_to_sizes={
-        "train": 1464,
+        "_train": 1464,
         "trainval": 2913,
         "val": 1449,
     },
@@ -45,7 +45,7 @@ _PASCAL_VOC_SEG_INFORMATION = DatasetDescriptor(
 
 _CITYSCAPE_ONLY_POLE_AS_OBJECT = DatasetDescriptor(
     splits_to_sizes={
-        "train": 2975,
+        "_train": 2975,
         "trainval": 3475,
         "val": 500,
     },
@@ -55,7 +55,7 @@ _CITYSCAPE_ONLY_POLE_AS_OBJECT = DatasetDescriptor(
 
 _CIVIL_ONLY_FUSED_CRACK = DatasetDescriptor(
     splits_to_sizes={
-        "train": 3079,
+        "_train": 3079,
         "trainval": 3837,
         "val": 768,
     },
@@ -65,7 +65,7 @@ _CIVIL_ONLY_FUSED_CRACK = DatasetDescriptor(
 
 _CIVIL_CRACK_SIMPLE = DatasetDescriptor(
     splits_to_sizes={
-        "train": 257,
+        "_train": 257,
         "trainval": 58,
         "val": 315,
     },
@@ -91,7 +91,7 @@ def get_dataset(dataset_name, split_name, dataset_dir):
 
     Args:
       dataset_name: Dataset img_name.
-      split_name: A train/val Split img_name.
+      split_name: A _train/val Split img_name.
       dataset_dir: The directory of the dataset sources.
 
     Returns:
@@ -106,7 +106,7 @@ def get_dataset(dataset_name, split_name, dataset_dir):
     splits_to_sizes = _DATASETS_INFORMATION[dataset_name].splits_to_sizes
 
     if split_name not in splits_to_sizes:
-        raise ValueError("data split img_name %s not recognized" % split_name)
+        raise ValueError("data_pipeline split img_name %s not recognized" % split_name)
 
     # Prepare the variables for different datasets.
     num_classes = _DATASETS_INFORMATION[dataset_name].num_classes

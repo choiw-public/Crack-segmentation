@@ -168,7 +168,7 @@ def get_data_from_tfrecord(config, drop_remainder=True):
             else:
                 data_files = [data_sources]
         if not data_files:
-            raise ValueError("No data files found in %s" % (data_sources,))
+            raise ValueError("No data_pipeline files found in %s" % (data_sources,))
         return data_files
 
     data_fullpath = dataset_path + "/" + dataset_split + "-*"
@@ -176,7 +176,7 @@ def get_data_from_tfrecord(config, drop_remainder=True):
     tfrecords = _get_data_files(data_fullpath)
     dataset = tf.data.TFRecordDataset(tfrecords)
 
-    if config.phase == "train":
+    if config.phase == "_train":
         dataset = dataset.shuffle(3000)
 
     dataset = dataset.repeat()

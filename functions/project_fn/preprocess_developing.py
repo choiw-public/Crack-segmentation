@@ -1,4 +1,4 @@
-from functions.project_fn.misc_utils import get_tensor_shape as get_shape
+from functions.project_fn.utils import get_tensor_shape as get_shape
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 import tensorflow as tf
@@ -7,15 +7,6 @@ import numpy as np
 
 
 class Preprocessing:
-    def __init__(self, config):
-        self.config = config
-
-    def __getattr__(self, item):
-        try:
-            return getattr(self.config, item)
-        except AttributeError:
-            raise AttributeError("'config' has no attribute '%s'" % item)
-
     @staticmethod
     def _fp32(tensor_or_list):
         """

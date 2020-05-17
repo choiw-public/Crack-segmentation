@@ -1,7 +1,7 @@
 import tensorflow as tf
 import csv
 
-from functions.project_fn.misc_utils import get_tensor_shape
+from functions.project_fn.utils import get_tensor_shape
 from collections import OrderedDict
 import numpy as np
 import cv2 as cv
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import time
 from joblib import Parallel, delayed
-from functions.project_fn import misc_utils
+from functions.project_fn import utils
 import multiprocessing
 
 
@@ -51,8 +51,8 @@ def log_initialize(config):
 
 
 def create_or_read_existing_log2(config):
-    if "train" in config.img_dir:
-        prefix = "train"
+    if "_train" in config.img_dir:
+        prefix = "_train"
     elif "test" in config.img_dir:
         prefix = "test"
     else:
@@ -131,7 +131,7 @@ def start_eval(ckpt_id, tf_filename, tf_eval_tensors, sess, config, tf_sharp, tf
             write_eval_log(ckpt_id, image_ids, per_image_metric_record, overall_metric, config)
             break
     if config.task == "deblur":
-        misc_utils.categorized_ssim(config)
+        utils.categorized_ssim(config)
 
 
 def start_eval_with_thresh(ckpt_id, thresh, tf_filename, tf_logit, tf_gt, sess, config):

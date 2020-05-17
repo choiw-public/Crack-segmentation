@@ -10,7 +10,7 @@ FLAGS = tf.app.flags.FLAGS
 shade_folder_dir = "../../shades/source"
 tfrecord_out_dir = "../../shades/tfrecord"
 
-dataset_split_name = "train"
+dataset_split_name = "_train"
 num_shards = 1
 
 

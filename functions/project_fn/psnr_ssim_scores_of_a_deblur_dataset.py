@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 from functions.project_fn.preprocess_developing import random_crop
 
 # goprodataset
-# tf_blur = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/train/images/tf_blur" # for tf_blur
-# tf_blur = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/train/images/blur_gamma" # for blur_gamma
-blur_dir = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/train/images/blur_gamma"
-sharp_dir = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/train/images/sharp"
-out_folder = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/train"
+# tf_blur = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/_train/images/tf_blur" # for tf_blur
+# tf_blur = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/_train/images/blur_gamma" # for blur_gamma
+blur_dir = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/_train/images/blur_gamma"
+sharp_dir = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/_train/images/sharp"
+out_folder = "/media/wooram/DATA/00.DL_datasets/GOPRO_dataset_for_deblur/restructured/_train"
 out_filename = "sharp_blur_gamma_psnr_ssim_of_goprodataset"
 colormap_to_compare = "color"
 do_crop = True

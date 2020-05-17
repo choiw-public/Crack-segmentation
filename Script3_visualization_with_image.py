@@ -1,8 +1,8 @@
 from functions.project_fn.model_utils import build_model
-from functions.project_fn.input_pipeline import get_image_list, build_input_pipeline
+from functions.project_fn.data_pipeline import get_image_list, build_input_pipeline
 
 from functions.project_fn.deploy_config import DeployConfig
-from functions.project_fn.misc_utils import get_ckpt, list_getter
+from functions.project_fn.utils import get_ckpt, list_getter
 from functions.project_fn.metric_calculation import log_initialize, write_eval_log, calculate_segmentation_metric
 import cv2 as cv
 import matplotlib.pyplot as plt
@@ -15,7 +15,7 @@ model_name = "fullmodel1_continue"
 
 config = DeployConfig(model_name, "vis")
 img_ph = tf.placeholder(config.dtype, [None, None, None, 3])
-data = {"input": img_ph, "gt": None}
+data = {"image": img_ph, "gt": None}
 pred, hvd = build_model(data, config)
 restorer = tf.train.Saver()
 session_config = tf.ConfigProto()

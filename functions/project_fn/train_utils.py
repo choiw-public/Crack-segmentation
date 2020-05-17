@@ -76,7 +76,7 @@ def xntropy_loss(logits,
         tf_pred = tf.argmax(logits, 1)
         tf_top1 = tf.math.in_top_k(logits, labels, 1, name="top1")
         tf_top5 = tf.math.in_top_k(logits, labels, 5, name="top5")
-        tf.add_to_collection("logit", tf.identity(logits, name="logit"))
+        tf.add_to_collection("get_logit", tf.identity(logits, name="get_logit"))
         tf.add_to_collection("prediction", tf.identity(tf_pred, name="prediction"))
         tf.add_to_collection("top1_tp", tf.identity(tf_top1, name="top1_tp"))
         tf.add_to_collection("top5_tp", tf.identity(tf_top5, name="top5_tp"))

@@ -5,16 +5,17 @@ import os
 
 
 def deploy(model_name, phase):
-    config_name = ".".join(["models", model_name, "configs", "config_%s" % phase])
-    config = imp.import_module(config_name).config
+    config_path = ".".join(["models", model_name, "configs", "config_%s" % phase])
+    config = imp.import_module(config_path).config
     result_dir = "/".join(["./models", model_name, "results"])
+    config["ckpt_dir"] = "/".join([result_dir, "saved_model"])
     config['phase'] = phase
-    if phase == "train":
+    if phase == "_train":
         config["is_train"] = True
-        config["ckpt_dir"] = "/".join([result_dir, "saved_model"])
         os.makedirs(config["ckpt_dir"], exist_ok=True)
     elif phase == "eval":
         config["is_train"] = False
+        config["weight_decay"] = None
         config["blur_dir"] = None
         config["background_dir"] = None
         config["bnorm_trainable"] = None
@@ -23,6 +24,7 @@ def deploy(model_name, phase):
     elif phase == "vis":
         config["batch_size"] = 1
         config["is_train"] = False
+        config["weight_decay"] = None
         config["background_dir"] = None
         config["bnorm_trainable"] = None
         config["vis_result_dir"] = "/".join([result_dir, "vis_results"])

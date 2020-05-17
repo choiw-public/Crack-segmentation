@@ -1,18 +1,18 @@
 from functions.project_fn.preprocess_developing import Preprocessing
-from functions.project_fn.misc_utils import list_getter
+from functions.project_fn.utils import list_getter
 import tensorflow as tf
 import os
 
 
-class InputPipeline(Preprocessing):
+class DataPipeline(Preprocessing):
     def __init__(self, config):
         self.tfrecord_feature = {"image": tf.FixedLenFeature((), tf.string, default_value=""),
                                  "filename": tf.FixedLenFeature((), tf.string, default_value=""),
                                  "height": tf.FixedLenFeature((), tf.int64, default_value=0),
                                  "width": tf.FixedLenFeature((), tf.int64, default_value=0),
                                  "segmentation": tf.FixedLenFeature((), tf.string, default_value="")}
-        super(InputPipeline, self).__init__(config)
         self.config = config
+        # super(DataPipeline, self).__init__(config)
         self._drop_remainder = True if self.phase == "Train" else False
         self._build_input_pipeline()
 
@@ -28,13 +28,13 @@ class InputPipeline(Preprocessing):
         self.image = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
         self.gt = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
         self.preprocessing()
-        return {"input": self.image, "filename": fname, "gt": self.gt}
+        return {"image": self.image, "filename": fname, "gt": self.gt}
 
     def _image_parser(self, image_name, gt_name):
         self.image = tf.image.decode_png(tf.read_file(image_name), 3)
         self.gt = tf.image.decode_png(tf.read_file(gt_name), 1)
         self.preprocessing()
-        return {"input": self.image, "gt": self.gt}
+        return {"image": self.image, "gt": self.gt}
 
     def _get_batch_and_init(self, tfrecord_dir, batch_size):
         tfrecord_list = list_getter(tfrecord_dir, extension="tfrecord")
@@ -45,7 +45,7 @@ class InputPipeline(Preprocessing):
             data = data.repeat()
         data = data.shuffle(batch_size * 10)
         data = data.map(self._tfrecord_parser, 4).batch(batch_size, self._drop_remainder)
-        data = data.prefetch(4)  # tf.data.experimental.AUTOTUNE
+        data = data.prefetch(4)  # tf.data_pipeline.experimental.AUTOTUNE
         iterator = data.make_one_shot_iterator()
         return iterator.get_next()
 
@@ -94,12 +94,14 @@ class InputPipeline(Preprocessing):
             shuffled_indices = tf.random.shuffle(indices)
             for key in keys:
                 batch_whole[key] = tf.gather(batch_whole[key], shuffled_indices)
-            self.data = batch_whole
+            self.image = batch_whole["image"]
+            self.gt = batch_whole["gt"]
         else:
-            self.data = batch_main
+            self.image = batch_main["image"]
+            self.gt = batch_main["gt"]
 
     def _build_input_pipeline(self):
-        if self.phase == "train":
+        if self.phase == "_train":
             self._input_from_tfrecord()
         elif self.phase in ["eval", "vis"]:
             if self.data_type == "image":
@@ -138,7 +140,9 @@ class InputPipeline(Preprocessing):
         seg_data = tf.data.Dataset.from_tensor_slices(seg_list)
         data = tf.data.Dataset.zip((img_data, seg_data))
         data = data.map(self._image_parser, 4).batch(self.batch_size, False)
-        data = data.prefetch(4)  # tf.data.experimental.AUTOTUNE
+        data = data.prefetch(4)  # tf.data_pipeline.experimental.AUTOTUNE
         iterator = data.make_initializable_iterator()
-        self.data = iterator.get_next()
+        dataset = iterator.get_next()
+        self.image = dataset["image"]
+        self.gt = dataset["gt"]
         self.init = iterator.initializer

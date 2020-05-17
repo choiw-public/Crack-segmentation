@@ -9,7 +9,7 @@ tf.app.flags.DEFINE_enum("image_format", "jpg", ["jpg", "jpeg", "png"],
 tf.app.flags.DEFINE_enum("label_format", "png", ["png"],
                          "Segmentation label format.")
 
-# A map from image format to expected data format.
+# A map from image format to expected data_pipeline format.
 _IMAGE_FORMAT_MAP = {
     "jpg": "jpeg",
     "jpeg": "jpeg",
@@ -67,11 +67,11 @@ def image_n_seg_to_tfexample(image_data, filename, height, width, seg_data):
     """Converts one image/segmentation pair to tf example.
 
     Args:
-      image_data: string of image data.
+      image_data: string of image data_pipeline.
       filename: image filename.
       height: image height.
       width: image width.
-      seg_data: string of semantic segmentation data.
+      seg_data: string of semantic segmentation data_pipeline.
       channel: image channel
 
     Returns:

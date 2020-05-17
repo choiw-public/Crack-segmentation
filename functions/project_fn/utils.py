@@ -292,7 +292,7 @@ def add_to_collection(featuremap, has_kernel=True):
 def init_check(sess):
     layer_collection = tf.get_collection("layer")
 
-    # To see histogram of input data, uncomment the below and manually check
+    # To see histogram of input data_pipeline, uncomment the below and manually check
     # in_container = []
     # tf_in = layer_collection[0][0]
     # for i in range(100):
@@ -450,7 +450,37 @@ def get_crop_coordinates(h_cnt, w_cnt, src_img, crop_size):
     _w2 = _w1 + crop_size
     return _h1, _h2, _w1, _w2
 
-# tf.enable_eager_execution()
-# tensor = tf.random_uniform([1, 257, 247, 1], maxval=255)
-# np_kernel = numpy_gaussian_kernel_2d(11, 1.5)
-# tf_kernel = tf_gaussian_kernel_2d(11, 1.5)
+
+def get_tensor_by_name(tensor_name):
+    tensor_list = [tensor.name.encode("ascii")
+                   for tensor in
+                   tf.get_default_graph().as_graph_def().node
+                   if tensor_name in tensor.name.encode("ascii")]
+    if "BatchNorm" in tensor_list[-1]:
+        tensor_name = [_name for _name in tensor_list if "batchnorm" in _name][-1] + ":0"
+    else:
+        tensor_name = tensor_list[-1] + ":0"
+    if tensor_name:
+        return tf.get_default_graph().get_tensor_by_name(tensor_name)
+    else:
+        raise ValueError("no tensor named by %s exists" % tensor_name)
+
+
+def fp32_var_getter(getter,
+                    name,
+                    shape=None,
+                    dtype=None,
+                    initializer=None,
+                    regularizer=None,
+                    trainable=True,
+                    *args, **kwargs):
+    """Custom variable getter that forces trainable variables to be stored in
+    float32 precision and then casts them to the training precision.
+    """
+    variable = getter(name, shape, dtype=tf.float32,
+                      initializer=initializer, regularizer=regularizer,
+                      trainable=trainable,
+                      *args, **kwargs)
+    if trainable and dtype != tf.float32:
+        variable = tf.cast(variable, dtype)
+    return variable

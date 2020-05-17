@@ -3,7 +3,7 @@ import glob
 import os
 import sys
 
-train_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/train"
+train_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/_train"
 val_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/val"
 dataset_root = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images"
 
@@ -27,5 +27,5 @@ def gen_list(set_folder, root_folder, setname):
     with open(os.path.join(root_folder, "info", "%s_labels.txt" % setname), "w") as txt:
         txt.write("\n".join(labels))
         txt.close()
-gen_list(train_folder, dataset_root, "train")
+gen_list(train_folder, dataset_root, "_train")
 gen_list(val_folder, dataset_root, "val")

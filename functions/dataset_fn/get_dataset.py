@@ -23,7 +23,7 @@ def get_dataset(split_name, dataset_dir):
     dataset_info = imp.load_source("info", os.path.join(dataset_info_path, "dataset_info.py")).info
     splits_to_sizes = dataset_info.splits_to_sizes
     if split_name not in splits_to_sizes:
-        raise ValueError("data split img_name %s not recognized" % split_name)
+        raise ValueError("data_pipeline split img_name %s not recognized" % split_name)
 
     # Prepare the variables for different datasets.
     num_classes = dataset_info.num_classes

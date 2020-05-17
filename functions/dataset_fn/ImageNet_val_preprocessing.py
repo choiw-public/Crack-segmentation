@@ -15,9 +15,9 @@
 # ==============================================================================
 """Process the ImageNet Challenge bounding boxes for TensorFlow model training.
 
-Associate the ImageNet 2012 Challenge validation data set with labels.
+Associate the ImageNet 2012 Challenge validation data_pipeline set with labels.
 
-The raw ImageNet validation data set is expected to reside in JPEG files
+The raw ImageNet validation data_pipeline set is expected to reside in JPEG files
 located in the following directory structure.
 
  data_dir/ILSVRC2012_val_00000001.JPEG
@@ -55,11 +55,11 @@ import sys
 
 validation_labels_file = "./imagenet_val_labels"
 data_dir = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/val"
-# Read in the 50000 synsets associated with the validation data set.
+# Read in the 50000 synsets associated with the validation data_pipeline set.
 labels = [l.strip() for l in open(validation_labels_file).readlines()]
 unique_labels = set(labels)
 
-# Make all sub-directories in the validation data dir.
+# Make all sub-directories in the validation data_pipeline dir.
 for label in unique_labels:
     labeled_data_dir = os.path.join(data_dir, label)
     # Catch error if sub-directory exists

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Converts PASCAL VOC 2012 data to TFRecord file format with Example protos.
+"""Converts PASCAL VOC 2012 data_pipeline to TFRecord file format with Example protos.
 
 PASCAL VOC 2012 dataset is expected to have the following directory structure:
 
@@ -37,7 +37,7 @@ Semantic segmentation annotations:
 list folder:
   ./VOCdevkit/VOC2012/ImageSets/Segmentation
 
-This script converts data into sharded data files and save at tfrecord folder.
+This script converts data_pipeline into sharded data_pipeline files and save at tfrecord folder.
 
 The Example proto contains the following fields:
 
@@ -86,7 +86,7 @@ def _convert_dataset(dataset_split):
   """Converts the specified dataset split to TFRecord format.
 
   Args:
-    dataset_split: The dataset split (e.g., train, test).
+    dataset_split: The dataset split (e.g., _train, test).
 
   Raises:
     RuntimeError: If loaded image and label have different original_shape.

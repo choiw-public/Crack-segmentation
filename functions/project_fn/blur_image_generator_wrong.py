@@ -1,6 +1,6 @@
 import tensorflow as tf
-from functions.project_fn.misc_utils import get_tensor_shape
-from functions.project_fn import misc_utils
+from functions.project_fn.utils import get_tensor_shape
+from functions.project_fn import utils
 
 
 def get_random_kernel(blur_kernel_bank, config):
@@ -76,7 +76,7 @@ def create_blur_images_individual(data_for_clones, config):
         if config.task == "deblur":
             sharp_images = data_for_clones[i]["gt"]
         elif config.task == "segmentation":
-            sharp_images = data_for_clones[i]["input"]
+            sharp_images = data_for_clones[i]["image"]
         else:
             raise ValueError("not supported task")
         clone_batch, _, _, c = get_tensor_shape(sharp_images)
@@ -85,7 +85,7 @@ def create_blur_images_individual(data_for_clones, config):
         for idx in range(clone_batch):
             with tf.device("/device:CPU:0"):
                 blur_kernel = get_random_kernel(blur_kernel_bank, config)
-                blur_kernel["tf_kernel"] = misc_utils.remap_kernel_to_odd_squre(blur_kernel["tf_kernel"])
+                blur_kernel["tf_kernel"] = utils.remap_kernel_to_odd_squre(blur_kernel["tf_kernel"])
                 blur_kernel["tf_kernel"] = tf.concat([tf.expand_dims(tf.expand_dims(blur_kernel["tf_kernel"], 2), 3)] * c, 2)
                 blur_kernels.append(blur_kernel)
             with tf.device("/device:GPU:" + str(gpu_id)):
@@ -102,7 +102,7 @@ def create_blur_images_individual(data_for_clones, config):
 
         blur_images.set_shape([clone_batch, None, None, c])
         if config.task == "deblur":
-            new_data_for_clones.append({"input": blur_images, "gt": ground_truth, "filename": data_for_clones[i]["filename"], "tf_kernel": blur_kernels})
+            new_data_for_clones.append({"image": blur_images, "gt": ground_truth, "filename": data_for_clones[i]["filename"], "tf_kernel": blur_kernels})
         elif config.task == "segmentation":
-            new_data_for_clones.append({"input": blur_images, "gt": ground_truth, "filename": data_for_clones[i]["filename"], "tf_kernel": blur_kernels})
+            new_data_for_clones.append({"image": blur_images, "gt": ground_truth, "filename": data_for_clones[i]["filename"], "tf_kernel": blur_kernels})
     return new_data_for_clones

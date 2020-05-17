@@ -1,4 +1,4 @@
-from functions.project_fn import misc_utils
+from functions.project_fn import utils
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -13,7 +13,7 @@ def miou_loss(logit, ground_truth, config):
     prob_map = tf.nn.softmax(logit)
     onehot_gt = tf.one_hot(tf.cast(tf.squeeze(ground_truth, 3), tf.uint8), config.num_classes)
 
-    logit_shape = misc_utils.get_tensor_shape(prob_map)
+    logit_shape = utils.get_tensor_shape(prob_map)
     # gt_shape = get_tensor_shape(onehot_gt)
 
     # check sanity
@@ -22,9 +22,9 @@ def miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_classes:
-        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of get_logit, ground_truth, and config.num_of_classes")
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     intersection_logit = prob_map * onehot_gt  # [batch, height, width, class]
     union_logit = prob_map + onehot_gt - intersection_logit  # [batch, height, width, class]
     iou_logit = tf.reduce_sum(intersection_logit, [0, 1, 2]) / tf.reduce_sum(union_logit, [0, 1, 2])  # class
@@ -54,7 +54,7 @@ def weighted_miou_loss(logit, ground_truth, config):
         raise ValueError("ground_truth cannot be None")
     onehot_gt = tf.one_hot(tf.cast(tf.squeeze(ground_truth, 3), tf.int32), config.num_of_classes)
 
-    logit_shape = misc_utils.get_tensor_shape(logit)
+    logit_shape = utils.get_tensor_shape(logit)
     # gt_shape = get_tensor_shape(onehot_gt)
 
     # check sanity
@@ -63,15 +63,15 @@ def weighted_miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of get_logit, ground_truth, and config.num_of_classes")
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
     union_logit = logit + onehot_gt - intersection_logit  # [batch, height, width, class]
     iou_logit = tf.reduce_sum(intersection_logit, [0, 1, 2]) / tf.reduce_sum(union_logit, [0, 1, 2])  # class
     loss = 1.0 - (iou_logit[0] * class_weight[0] + iou_logit[1] * class_weight[1])
     tf.add_to_collection("onehot_gt", onehot_gt)
-    tf.add_to_collection("logit", logit)
+    tf.add_to_collection("get_logit", logit)
 
     # for monitoring purpose
     tf.add_to_collection("intersection_logit", intersection_logit)
@@ -85,7 +85,7 @@ def mf1_loss(logit, ground_truth, config):
         raise ValueError("ground_truth cannot be None")
     onehot_gt = tf.one_hot(tf.cast(tf.squeeze(ground_truth, 3), tf.int32), config.num_of_classes)
 
-    logit_shape = misc_utils.get_tensor_shape(logit)
+    logit_shape = utils.get_tensor_shape(logit)
     # gt_shape = get_tensor_shape(onehot_gt)
 
     # check sanity
@@ -94,9 +94,9 @@ def mf1_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of get_logit, ground_truth, and config.num_of_classes")
 
-    # for calculating f1 loss with logit
+    # for calculating f1 loss with get_logit
     tp_logit = tf.reduce_sum(logit * onehot_gt, [0, 1, 2])
     fp_logit = tf.reduce_sum((1 - logit) * (1 - onehot_gt), [0, 1, 2])
     fn_logit = tf.reduce_sum(onehot_gt * (1 - logit), [0, 1, 2])
@@ -104,7 +104,7 @@ def mf1_loss(logit, ground_truth, config):
     recall_logit = tp_logit / (tp_logit + fn_logit + 1e-07)
     f1 = 2 * precision_logit * recall_logit / (precision_logit + recall_logit + 1e-07)
     tf.add_to_collection("onehot_gt", onehot_gt)
-    tf.add_to_collection("logit", logit)
+    tf.add_to_collection("get_logit", logit)
     return 1 - tf.reduce_mean(f1)
 
 
@@ -114,7 +114,7 @@ def mf1_miou_loss(logit, ground_truth, config):
         raise ValueError("ground_truth cannot be None")
     onehot_gt = tf.one_hot(tf.cast(tf.squeeze(ground_truth, 3), tf.int32), config.num_of_classes)
 
-    logit_shape = misc_utils.get_tensor_shape(logit)
+    logit_shape = utils.get_tensor_shape(logit)
     # gt_shape = get_tensor_shape(onehot_gt)
 
     # check sanity
@@ -123,15 +123,15 @@ def mf1_miou_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of get_logit, ground_truth, and config.num_of_classes")
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
     union_logit = logit + onehot_gt - intersection_logit  # [batch, height, width, class]
     iou_logit = tf.reduce_sum(intersection_logit, [0, 1, 2]) / tf.reduce_sum(union_logit, [0, 1, 2])  # class
     miou_logit = tf.reduce_mean(iou_logit)
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     tp_logit = tf.reduce_sum(logit * onehot_gt, [0, 1, 2])
     fp_logit = tf.reduce_sum((1 - logit) * (1 - onehot_gt), [0, 1, 2])
     fn_logit = tf.reduce_sum(onehot_gt * (1 - logit), [0, 1, 2])
@@ -140,7 +140,7 @@ def mf1_miou_loss(logit, ground_truth, config):
     _logit = 2 * precision_logit * recall_logit / (precision_logit + recall_logit + 1e-07)
     mf1_logit = tf.reduce_mean(_logit)
     tf.add_to_collection("onehot_gt", onehot_gt)
-    tf.add_to_collection("logit", logit)
+    tf.add_to_collection("get_logit", logit)
     c1 = config.loss_fn_names[1][0]
     c2 = config.loss_fn_names[1][1]
     return 1 - (c1 * miou_logit + c2 * mf1_logit)  # mf1_miou_loss
@@ -152,7 +152,7 @@ def miou_recall_loss(logit, ground_truth, config):
         raise ValueError("ground_truth cannot be None")
     onehot_gt = tf.one_hot(tf.cast(tf.squeeze(ground_truth, 3), tf.int32), config.num_of_classes)
 
-    logit_shape = misc_utils.get_tensor_shape(logit)
+    logit_shape = utils.get_tensor_shape(logit)
     # gt_shape = get_tensor_shape(onehot_gt)
 
     # check sanity
@@ -161,15 +161,15 @@ def miou_recall_loss(logit, ground_truth, config):
     # if logit_shape != gt_shape:
     #     raise ValueError("Mismatching shapes between logits and ground_truths")
     if logit_shape[-1] != config.num_of_classes:
-        raise ValueError("Something wrong. Check the get_shape of logit, ground_truth, and config.num_of_classes")
+        raise ValueError("Something wrong. Check the get_shape of get_logit, ground_truth, and config.num_of_classes")
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     intersection_logit = logit * onehot_gt  # [batch, height, width, class]
     union_logit = logit + onehot_gt - intersection_logit  # [batch, height, width, class]
     iou_logit = tf.reduce_sum(intersection_logit, [0, 1, 2]) / tf.reduce_sum(union_logit, [0, 1, 2])  # class
     miou_logit = tf.reduce_mean(iou_logit)
 
-    # for calculating iou loss with logit
+    # for calculating iou loss with get_logit
     tp_logit = tf.reduce_sum(logit * onehot_gt, [0, 1, 2])
     fn_logit = tf.reduce_sum(onehot_gt * (1 - logit), [0, 1, 2])
     recall_logit = tp_logit / (tp_logit + fn_logit + 1e-07)
@@ -177,7 +177,7 @@ def miou_recall_loss(logit, ground_truth, config):
     c1 = config.loss_fn_names[1][0]
     c2 = config.loss_fn_names[1][1]
     tf.add_to_collection("onehot_gt", onehot_gt)
-    tf.add_to_collection("logit", logit)
+    tf.add_to_collection("get_logit", logit)
     return 1 - (c1 * miou_logit + c2 * mrecall_logit)  # mf1_miou_loss
 
 
@@ -190,19 +190,19 @@ def xntropy_loss(logit, ground_truth, config):
     else:
         one_hot_labels = ground_truth
 
-    if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(one_hot_labels):
+    if utils.get_tensor_shape(logit) != utils.get_tensor_shape(one_hot_labels):
         logit = tf.squeeze(logit)
-        if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(one_hot_labels):
+        if utils.get_tensor_shape(logit) != utils.get_tensor_shape(one_hot_labels):
             logit = tf.reshape(logit, shape=[-1, config.num_classes])
-            if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(one_hot_labels):
-                raise ValueError("unexpted logit get_shape")
+            if utils.get_tensor_shape(logit) != utils.get_tensor_shape(one_hot_labels):
+                raise ValueError("unexpted get_logit get_shape")
     return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=one_hot_labels, logits=logit))
 
 
 def l1_loss(logit, ground_truth, *args):
     if ground_truth is None:
         raise ValueError("No label is given")
-    if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(ground_truth):
+    if utils.get_tensor_shape(logit) != utils.get_tensor_shape(ground_truth):
         raise ValueError("Mismatching shapes between logits and ground_truths")
     return tf.reduce_mean(tf.abs(logit - ground_truth))
 
@@ -210,7 +210,7 @@ def l1_loss(logit, ground_truth, *args):
 def l1_loss_with_box_kernel(logit, ground_truth, size):
     if ground_truth is None:
         raise ValueError("No label is given")
-    if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(ground_truth):
+    if utils.get_tensor_shape(logit) != utils.get_tensor_shape(ground_truth):
         raise ValueError("Mismatching shapes between logits and ground_truths")
     window = tf.ones([size, size, 1, 1])
     window = window / (tf.reduce_sum(window))
@@ -222,9 +222,9 @@ def l1_loss_with_box_kernel(logit, ground_truth, size):
 def l1_loss_with_gaussian_kernel(logit, ground_truth, size, std):
     if ground_truth is None:
         raise ValueError("No label is given")
-    if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(ground_truth):
+    if utils.get_tensor_shape(logit) != utils.get_tensor_shape(ground_truth):
         raise ValueError("Mismatching shapes between logits and ground_truths")
-    window = misc_utils.gen_gaussian_kernel_by_sigma(size, std)
+    window = utils.gen_gaussian_kernel_by_sigma(size, std)
     logit = tf.nn.conv2d(logit, window, [1, 1, 1, 1], "VALID")
     ground_truth = tf.nn.conv2d(ground_truth, window, [1, 1, 1, 1], "VALID")
     return tf.reduce_mean(tf.abs(logit - ground_truth))
@@ -234,11 +234,11 @@ def l2_loss(logit, ground_truth, size=None, gaussian_kernel=False):
     # mean squared error
     if ground_truth is None:
         raise ValueError("No label is given")
-    if misc_utils.get_tensor_shape(logit) != misc_utils.get_tensor_shape(ground_truth):
+    if utils.get_tensor_shape(logit) != utils.get_tensor_shape(ground_truth):
         raise ValueError("Mismatching shapes between logits and ground_truths")
     if size:  # no tf_kernel is applied if size=None
         if gaussian_kernel:
-            window = misc_utils.gen_gaussian_kernel_by_sigma(size)
+            window = utils.gen_gaussian_kernel_by_sigma(size)
         else:
             window = tf.ones([size, size, 1, 1])
             window = window / (tf.reduce_sum(window))
@@ -251,8 +251,8 @@ def rectified_mse_loss(logit, ground_truth):
     # todo:This is mostly likely trash
     if ground_truth is None:
         raise ValueError("No label is given")
-    logit_shape = misc_utils.get_tensor_shape(logit)
-    gt_shape = misc_utils.get_tensor_shape(ground_truth)
+    logit_shape = utils.get_tensor_shape(logit)
+    gt_shape = utils.get_tensor_shape(ground_truth)
     if logit_shape != gt_shape:
         raise ValueError("Mismatching shapes between logits and ground_truths")
     with tf.name_scope("l2_loss"):
@@ -271,7 +271,7 @@ def ssim_components(img1, img2, kernel):
     L = tf.reduce_max([img1, img2])  # 1  # depth of image (255 in case the image has a differnt scale)
     c1 = (k1 * L) ** 2
     c2 = (k2 * L) ** 2
-    channel = misc_utils.get_tensor_shape(img1)[-1]
+    channel = utils.get_tensor_shape(img1)[-1]
     kernel = tf.concat([kernel] * channel, 2)
 
     mu1 = tf.nn.depthwise_conv2d(img1, kernel, [1, 1, 1, 1], "VALID")
@@ -295,38 +295,38 @@ def ssim_components(img1, img2, kernel):
 
 
 def ssim_l_term_loss_with_box_kernel(img1, img2, size=11):
-    l_term, _, _ = ssim_components(img1, img2, misc_utils.gen_box_kernel(size))
+    l_term, _, _ = ssim_components(img1, img2, utils.gen_box_kernel(size))
     return 1 - tf.reduce_mean(l_term)
 
 
 def ssim_cs_term_loss_with_box_kernel(img1, img2, size=11):
-    _, cs_term, _ = ssim_components(img1, img2, misc_utils.gen_box_kernel(size))
+    _, cs_term, _ = ssim_components(img1, img2, utils.gen_box_kernel(size))
     return 1 - tf.reduce_mean(cs_term)
 
 
 def ssim_lcs_term_loss_with_box_kernel(img1, img2, size=11):
     # same as ssim loss, but avg tf_kernel
-    _, _, lcs_term = ssim_components(img1, img2, misc_utils.gen_box_kernel(size))
+    _, _, lcs_term = ssim_components(img1, img2, utils.gen_box_kernel(size))
     return 1 - tf.reduce_mean(lcs_term)
 
 
 def ssim_lcs_term_l1_loss_with_box_kernel(img1, img2, size=11, alpha=0.8):
-    _, _, lcs_term = ssim_components(img1, img2, misc_utils.gen_box_kernel(size))
+    _, _, lcs_term = ssim_components(img1, img2, utils.gen_box_kernel(size))
     lcs = 1 - tf.reduce_mean(lcs_term)
-    l1 = l1_loss_with_box_kernel(img1, img2, misc_utils.gen_box_kernel(size))
+    l1 = l1_loss_with_box_kernel(img1, img2, utils.gen_box_kernel(size))
     return alpha * lcs + (1 - alpha) * l1
 
 
 def ssim_l_term_loss_with_gaussian(img1, img2, size=11):
     # original paper used the std of 1.5
-    kernel = misc_utils.gen_gaussian_kernel_by_sigma(size, 1.5)
+    kernel = utils.gen_gaussian_kernel_by_sigma(size, 1.5)
     l_term, _, _ = ssim_components(img1, img2, kernel)
     return 1 - tf.reduce_mean(l_term)
 
 
 def ssim_cs_term_loss_with_gaussian(img1, img2, size=11):
     # original paper used the std of 1.5
-    kernel = misc_utils.gen_gaussian_kernel_by_sigma(size, 1.5)
+    kernel = utils.gen_gaussian_kernel_by_sigma(size, 1.5)
     _, cs_term, _ = ssim_components(img1, img2, kernel)
     return 1 - tf.reduce_mean(cs_term)
 
@@ -334,28 +334,28 @@ def ssim_cs_term_loss_with_gaussian(img1, img2, size=11):
 def ssim_lcs_term_loss_with_gaussian(img1, img2, size=11):
     # exactly same as ssim loss
     # original paper used the std of 1.5
-    kernel = misc_utils.gen_gaussian_kernel_by_sigma(size, 1.5)
+    kernel = utils.gen_gaussian_kernel_by_sigma(size, 1.5)
     _, _, lcs_term = ssim_components(img1, img2, kernel)
     return 1 - tf.reduce_mean(lcs_term)
 
 
 def ms_ssim_cs_term_loss_with_random_gaussian(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     cs_terms = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         _, cs_term, _ = ssim_components(img1, img2, kernel)
         cs_terms *= cs_term
     return 1 - tf.reduce_mean(cs_terms)
 
 
 def ms_ssim_lcs_term_loss_with_random_gaussian(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     cs_terms = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         l_term, cs_term, _ = ssim_components(img1, img2, kernel)
         cs_terms *= cs_term
     lcs_term = l_term * cs_terms
@@ -363,11 +363,11 @@ def ms_ssim_lcs_term_loss_with_random_gaussian(img1, img2, num_scales):
 
 
 def ms_ssim_lcs_term_loss_with_random_gaussian_pseudo_huber(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     cs_terms = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         l_term, cs_term, _ = ssim_components(img1, img2, kernel)
         cs_terms *= cs_term
     lcs_term = l_term * cs_terms
@@ -416,7 +416,7 @@ def pseudo_huber_loss(label, pred, *args):
 
 def pseudo_huber_loss_with_kernel(label, pred, kernel):
     delta = 2.0
-    channel = misc_utils.get_tensor_shape(pred)[-1]
+    channel = utils.get_tensor_shape(pred)[-1]
     kernel = tf.concat([kernel] * channel, 2)
 
     label = tf.nn.depthwise_conv2d(label, kernel, [1, 1, 1, 1], "VALID")
@@ -426,14 +426,14 @@ def pseudo_huber_loss_with_kernel(label, pred, kernel):
 
 def ridge_pseudo_huber_loss(label, pred, *args):
     delta = 0.25
-    label = misc_utils.detect_ridge_channel_wise(label)
-    pred = misc_utils.detect_ridge_channel_wise(pred)
+    label = utils.detect_ridge_channel_wise(label)
+    pred = utils.detect_ridge_channel_wise(pred)
     return tf.reduce_mean(tf.multiply(tf.square(delta), tf.sqrt(1. + tf.square((label - pred) / delta)) - 1.))
 
 
 def ridge_l1_loss(label, pred, *args):
-    label = misc_utils.detect_ridge_channel_wise(label)
-    pred = misc_utils.detect_ridge_channel_wise(pred)
+    label = utils.detect_ridge_channel_wise(label)
+    pred = utils.detect_ridge_channel_wise(pred)
     tf.add_to_collection("ridge_pred", pred)
     tf.add_to_collection("ridge_gt", label)
     return l1_loss(pred, label)
@@ -445,11 +445,11 @@ def ridge_loss_maxima_with_random_gaussian(img1, img2, kernel):
 
 
 def ms_ssim_cs_term_and_ridge_term_with_random_gaussian(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     cs_and_r_terms = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         _, cs_term, _ = ssim_components(img1, img2, kernel)
         ridge_similarity_coefficient = ridge_similarity(img1, img2, kernel)
         cs_and_r_terms *= cs_term * ridge_similarity_coefficient
@@ -462,7 +462,7 @@ def ssim_ridge_components(img1, img2, kernel):
     L = tf.reduce_max([img1, img2])  # 1  # depth of image (255 in case the image has a differnt scale)
     c1 = (k1 * L) ** 2
     c2 = (k2 * L) ** 2
-    channel = misc_utils.get_tensor_shape(img1)[-1]
+    channel = utils.get_tensor_shape(img1)[-1]
     kernel = tf.concat([kernel] * channel, 2)
 
     mu1 = tf.nn.depthwise_conv2d(img1, kernel, [1, 1, 1, 1], "VALID")
@@ -483,12 +483,12 @@ def ssim_ridge_components(img1, img2, kernel):
 
 
 def ms_ssim_lcs_term_loss_and_ridge_loss_with_random_gaussian(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     r_terms = []
     cs_term = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         l_term, cs_term, r_term = ssim_ridge_components(img1, img2, kernel)
         cs_term *= cs_term * r_term
         r_terms.append(tf.reduce_mean(r_term))
@@ -498,11 +498,11 @@ def ms_ssim_lcs_term_loss_and_ridge_loss_with_random_gaussian(img1, img2, num_sc
 
 
 def ms_ssim_lcs_term_loss_and_l1_loss_with_random_gaussian(img1, img2, num_scales):
-    random_kernel_size = misc_utils.get_random_gaussian_kernel_size(img1)
-    random_scales = misc_utils.get_random_sigmas(random_kernel_size, num_scales)
+    random_kernel_size = utils.get_random_gaussian_kernel_size(img1)
+    random_scales = utils.get_random_sigmas(random_kernel_size, num_scales)
     cs_terms = 1
     for scale in tf.unstack(random_scales):
-        kernel = misc_utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
+        kernel = utils.gen_gaussian_kernel_by_sigma(random_kernel_size, scale)
         l_term, cs_term, _ = ssim_components(img1, img2, kernel)
         cs_terms *= cs_term
     l1 = l1_loss(img1, img2)
@@ -517,7 +517,7 @@ def ssim_sobel(img1, img2, kernel):
     L = tf.reduce_max([img1, img2])  # 1  # depth of image (255 in case the image has a differnt scale)
     c1 = (k1 * L) ** 2
     c2 = (k2 * L) ** 2
-    channel = misc_utils.get_tensor_shape(img1)[-1]
+    channel = utils.get_tensor_shape(img1)[-1]
     kernel = tf.concat([kernel] * channel, 2)
 
     mu1 = tf.nn.depthwise_conv2d(img1, kernel, [1, 1, 1, 1], "VALID")
@@ -533,8 +533,8 @@ def ssim_sobel(img1, img2, kernel):
     cs_term = (2.0 * sigma12 + c2) / (sigma1_sq + sigma2_sq + c2)
     lcs_term = l_term * cs_term
 
-    sobel1 = misc_utils.sobel(mu1)
-    sobel2 = misc_utils.sobel(mu2)
+    sobel1 = utils.sobel(mu1)
+    sobel2 = utils.sobel(mu2)
 
     sobel_term = (2 * sobel1 * sobel2 + c2) / (sobel1 ** 2 + sobel2 ** 2 + c2)
 
@@ -547,7 +547,7 @@ def ssim_sobel2(img1, img2, kernel, kernel_size, reference_kernel_size):
     L = tf.reduce_max([img1, img2])  # 1  # depth of image (255 in case the image has a differnt scale)
     c1 = (k1 * L) ** 2
     c2 = (k2 * L) ** 2
-    channel = misc_utils.get_tensor_shape(img1)[-1]
+    channel = utils.get_tensor_shape(img1)[-1]
     kernel = tf.concat([kernel] * channel, 2)
 
     clip_size = (reference_kernel_size - kernel_size) / 2
@@ -570,8 +570,8 @@ def ssim_sobel2(img1, img2, kernel, kernel_size, reference_kernel_size):
     l_term = (2 * mu1_mu2 + c1) / (mu1_sq + mu2_sq + c1)
     cs_term = (2.0 * sigma12 + c2) / (sigma1_sq + sigma2_sq + c2)
 
-    sobel1 = misc_utils.sobel(mu1)
-    sobel2 = misc_utils.sobel(mu2)
+    sobel1 = utils.sobel(mu1)
+    sobel2 = utils.sobel(mu2)
 
     sobel_term = (2 * sobel1 * sobel2 + c2) / (sobel1 ** 2 + sobel2 ** 2 + c2)
 
@@ -604,12 +604,12 @@ def rms_ssim_sobel_loss(img1, img2, num_scales):
     # this function is DIFFERENT from other rms_ssim loss functions within this file
     # this function generate random kernel sizes at each scales while others uses fixed kernel size at each iteration.
     # Result: not good
-    random_kernel_sizes = tf.unstack(misc_utils.get_random_kernel_sizes(img1, num_scales))
+    random_kernel_sizes = tf.unstack(utils.get_random_kernel_sizes(img1, num_scales))
     cs_terms = 1
     for i, kernel_size in enumerate(random_kernel_sizes):
-        random_sigma = misc_utils.get_random_sigmas(kernel_size, 1)
-        kernel = misc_utils.gaussian_kernel_2d(kernel_size, random_sigma)
-        kernel = misc_utils.remap_kernel(kernel, kernel_size, random_kernel_sizes[-1])
+        random_sigma = utils.get_random_sigmas(kernel_size, 1)
+        kernel = utils.gaussian_kernel_2d(kernel_size, random_sigma)
+        kernel = utils.remap_kernel(kernel, kernel_size, random_kernel_sizes[-1])
         l_term, cs_term, _ = ssim_sobel(img1, img2, kernel)
         cs_terms *= cs_term
     rms_ssim_sobel = l_term * cs_terms
@@ -618,14 +618,14 @@ def rms_ssim_sobel_loss(img1, img2, num_scales):
 
 def sobel_loss(img1, img2, dummy):
     kernel_size = 7
-    random_sigma = misc_utils.get_random_sigmas(kernel_size, 1)
-    kernel = misc_utils.gaussian_kernel_2d(kernel_size, random_sigma)
+    random_sigma = utils.get_random_sigmas(kernel_size, 1)
+    kernel = utils.gaussian_kernel_2d(kernel_size, random_sigma)
     kernel = tf.concat([kernel] * 3, 2)
     denoised_img1 = tf.nn.depthwise_conv2d(img1, kernel, [1, 1, 1, 1], "VALID")
     denoised_img2 = tf.nn.depthwise_conv2d(img2, kernel, [1, 1, 1, 1], "VALID")
 
-    sobel1 = misc_utils.sobel(img1)
-    sobel2 = misc_utils.sobel(img2)
+    sobel1 = utils.sobel(img1)
+    sobel2 = utils.sobel(img2)
     tf.add_to_collection("sobel_img", sobel1)
     tf.add_to_collection("sobel_gt", sobel2)
     return tf.reduce_mean((sobel1 - sobel2) ** 2)
