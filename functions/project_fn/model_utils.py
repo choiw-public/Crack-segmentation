@@ -77,47 +77,6 @@ class ModelHandler(Module, TrainHandler):
             vars_to_exclude |= set(var_to_exclude)
         return [v for v in global_variables if v not in vars_to_exclude]
 
-    def restore_pretrained_model_developing(sess, config, ignore_missing_vars=True):
-        print("Loading a 'PRE-TRAINED' model from %s", config.pretrained_ckpt_dir)
-        # Variables that will not be restored.
-        exclude_list = ["global_step"]
-        if config.layers_to_be_not_restored:
-            raise ValueError("this has not been debugged yet")
-            exclude_list.extend([config.task + "/" + exclude_name for exclude_name in config.layers_to_be_not_restored])
-
-        variables_to_restore = get_variables_to_restore(exclude_list)
-
-        if not variables_to_restore:
-            raise ValueError("var_list cannot be empty")
-        if ignore_missing_vars:
-            reader = tf.pywrap_tensorflow.NewCheckpointReader(config.pretrained_ckpt_dir)
-            if isinstance(variables_to_restore, dict):
-                var_dict = variables_to_restore
-            else:
-                var_dict = {var.op.name: var for var in variables_to_restore}
-            available_vars = {}
-            for var in var_dict:
-                if reader.has_tensor(var):
-                    available_vars[var] = var_dict[var]
-                else:
-                    tf.logging.warning(
-                        "Variable %s missing in checkpoint %s", var, config.pretrained_ckpt_dir)
-            variables_to_restore = available_vars
-        if variables_to_restore:
-            excluded_vars = list(set(tf.global_variables()) - set(variables_to_restore))
-            if excluded_vars:
-                print("=============================== Attention ===============================")
-                print("The following variables will not be restored from pretrained model:")
-                for variable in excluded_vars:
-                    print("     %s" % variable)
-                print("==========================================================================")
-                print("\n")
-
-            saver = tf.train.Saver(variables_to_restore)
-            saver.restore(sess, config.pretrained_ckpt_dir)
-        else:
-            raise NameError("no variables to restores")
-
     def save_checkpoint_and_summary(saver, sess, summary_writer, summary_op, step, config):
         if config.lr_policy in ["slow_start", "fixed"]:
             if step % config.ckpt_save_interval == 0 or step >= config.max_step or step == 1:
