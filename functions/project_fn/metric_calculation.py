@@ -51,8 +51,8 @@ def log_initialize(config):
 
 
 def create_or_read_existing_log2(config):
-    if "_train" in config.img_dir:
-        prefix = "_train"
+    if "train" in config.img_dir:
+        prefix = "train"
     elif "test" in config.img_dir:
         prefix = "test"
     else:

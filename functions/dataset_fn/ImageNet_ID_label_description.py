@@ -465,7 +465,7 @@ def get_ImageNet_label_class():
             463: "bucket, pail",
             464: "buckle",
             465: "bulletproof vest",
-            466: "bullet _train, bullet",
+            466: "bullet _train_phase, bullet",
             467: "butcher shop, meat market",
             468: "cab, hack, taxi, taxicab",
             469: "caldron, cauldron",

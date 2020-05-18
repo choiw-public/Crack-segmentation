@@ -10,7 +10,7 @@ def deploy(model_name, phase):
     result_dir = "/".join(["./models", model_name, "results"])
     config["ckpt_dir"] = "/".join([result_dir, "saved_model"])
     config['phase'] = phase
-    if phase == "_train":
+    if phase == "train":
         config["is_train"] = True
         os.makedirs(config["ckpt_dir"], exist_ok=True)
     elif phase == "eval":

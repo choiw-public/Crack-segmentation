@@ -101,7 +101,7 @@ class DataPipeline(Preprocessing):
             self.gt = batch_main["gt"]
 
     def _build_input_pipeline(self):
-        if self.phase == "_train":
+        if self.phase == "train":
             self._input_from_tfrecord()
         elif self.phase in ["eval", "vis"]:
             if self.data_type == "image":

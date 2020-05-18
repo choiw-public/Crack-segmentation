@@ -12,7 +12,7 @@ seg_folder_dir = "../../datasets/toy/seg"
 tfrecord_out_dir = "../../datasets/toy/tfrecord"
 min_length = 0
 
-dataset_split_name = "_train"
+dataset_split_name = "train"
 num_shards = 1
 
 

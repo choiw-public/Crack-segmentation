@@ -15,7 +15,7 @@
 # ==============================================================================
 r"""Removes parts of a graph that are only needed for training.
 There are several common transformations that can be applied to GraphDefs
-created to _train a model, that help reduce the amount of computation needed when
+created to _train_phase a model, that help reduce the amount of computation needed when
 the network is used only for inference. These include:
  - Removing training-only operations like checkpoint saving.
  - Stripping out parts of the graph that are never reached.

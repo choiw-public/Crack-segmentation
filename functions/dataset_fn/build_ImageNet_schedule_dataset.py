@@ -2,8 +2,8 @@
 Folder structure should be like the below:
 
 dataset/subsets/classes/img.jpg
-ex) ImageNet/_train/fish/fish1.jpg
-    ImageNet/_train/fish/fish2.jpg ...
+ex) ImageNet/_train_phase/fish/fish1.jpg
+    ImageNet/_train_phase/fish/fish2.jpg ...
 
     ImageNet/val/animal/animal1.jpg
     ImageNet/val/animal/animal2.jpg
@@ -20,11 +20,11 @@ import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 raw_data_folder_dir = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/datasets/Raw_data/full_dataset/images"
-tfrecord_dir = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/datasets/tfrecords/tfrecords_train_schedule/1to320/_train"
+tfrecord_dir = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/datasets/tfrecords/tfrecords_train_schedule/1to320/_train_phase"
 
 label_min = 0
 label_max = 320
-set_name = "_train"  # specify subfolder names such as _train, val, trainval etc.
+set_name = "train"  # specify subfolder names such as _train_phase, val, trainval etc.
 num_shard = 320
 
 
