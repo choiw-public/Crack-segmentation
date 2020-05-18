@@ -86,7 +86,7 @@ def _convert_dataset(dataset_split):
   """Converts the specified dataset split to TFRecord format.
 
   Args:
-    dataset_split: The dataset split (e.g., _train_phase, test).
+    dataset_split: The dataset split (e.g., _train_handler, test).
 
   Raises:
     RuntimeError: If loaded image and label have different original_shape.

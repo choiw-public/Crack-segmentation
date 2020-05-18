@@ -3,7 +3,7 @@ import glob
 import os
 import sys
 
-train_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/_train_phase"
+train_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/_train_handler"
 val_folder = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images/val"
 dataset_root = "/media/wooram/DATA/00.DL_datasets/ImageNet/2012/Images"
 

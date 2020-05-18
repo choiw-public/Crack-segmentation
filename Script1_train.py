@@ -20,5 +20,5 @@ model = ModelHandler(data_pipeline, config)
 # from functions.project_fn.model_utils import _start_train
 
 # train_tensor, loss, hvd = build_model(data_pipeline, config)
-# start _train_phase
+# start _train_handler
 # _start_train(train_tensor, loss, data_init, hvd, config)

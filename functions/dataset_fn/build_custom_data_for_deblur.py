@@ -6,9 +6,9 @@ import tensorflow as tf
 from random import shuffle
 
 FLAGS = tf.app.flags.FLAGS
-sharp_img_folder_dir = "/media/choiw/DATA/00.DL_datasets/00.civil/deblur/00._train_phase/1-1.pohang_sharp_longer_side_1920_x256_aug/images"
+sharp_img_folder_dir = "/media/choiw/DATA/00.DL_datasets/00.civil/deblur/00._train_handler/1-1.pohang_sharp_longer_side_1920_x256_aug/images"
 blur_img_folder_dir = None
-tfrecord_out_dir = "/media/choiw/DATA/00.DL_datasets/00.civil/deblur/00._train_phase/1-1.pohang_sharp_longer_side_1920_x256_aug/tfrecord"  # folder path or none
+tfrecord_out_dir = "/media/choiw/DATA/00.DL_datasets/00.civil/deblur/00._train_handler/1-1.pohang_sharp_longer_side_1920_x256_aug/tfrecord"  # folder path or none
 dataset_split_name = "train"
 num_shards = 1
 

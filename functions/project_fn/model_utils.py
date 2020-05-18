@@ -9,20 +9,6 @@ import time
 
 
 class TrainHandler:
-    def _build_train_op(self):
-        self.grads_and_vars = self.optm_op.compute_gradients(self.loss, var_list=tf.trainable_variables())
-
-        # gradient sanity check
-        none_grad_vars = []
-        for grad, var in self.grads_and_vars:
-            if grad is None:
-                none_grad_vars.append(var)
-        if none_grad_vars:
-            for var in none_grad_vars:
-                print(var.name)
-            raise ValueError('The above variables have no gradient')
-        self.optm_op.apply_gradients(self.grads_and_vars, global_step=self.global_step)
-
     def _build_summary_op(self):
         # for index, grad in enumerate(self.grads_and_vars):
         #     tf.summary.histogram("{}-grad".format(self.grads_and_vars[index][1].name), self.grads_and_vars[index][0])
@@ -52,21 +38,21 @@ class TrainHandler:
         const_0 = tf.constant(0.0, dtype=tf.float64)
         const_1 = tf.constant(1, dtype=tf.float64)
         const_2 = tf.constant(2, dtype=tf.float64)
-        slow_step_size = tf.constant(self.slow_step_size, tf.float64)
+        slow_start_step_size = tf.constant(self.slow_start_step_size, tf.float64)
         cycle_step_size = tf.constant(self.cycle_step_size, tf.float64)
 
         max_lr = tf.constant(self.max_lr, tf.float64)
         min_lr = tf.constant(self.min_lr, tf.float64)
-        max_lr_decay_step = tf.cond(tf.less_equal(global_step, slow_step_size),
+        max_lr_decay_step = tf.cond(tf.less_equal(global_step, slow_start_step_size),
                                     lambda: const_0,
-                                    lambda: tf.floor(const_1 + (global_step - slow_step_size) / cycle_step_size))
+                                    lambda: tf.floor(const_1 + (global_step - slow_start_step_size) / cycle_step_size))
 
         max_lr_decay = tf.constant(self.max_lr_decay, tf.float64)
         max_lr = max_lr * (max_lr_decay ** (max_lr_decay_step - const_1))
-        cos_inner = (tf.constant(pi, tf.float64) * tf.floormod(global_step - slow_step_size, cycle_step_size)) / cycle_step_size
+        cos_inner = (tf.constant(pi, tf.float64) * tf.floormod(global_step - slow_start_step_size, cycle_step_size)) / cycle_step_size
 
-        self.lr = tf.cond(tf.less_equal(global_step, slow_step_size),
-                          lambda: self.max_lr / slow_step_size * global_step,
+        self.lr = tf.cond(tf.less_equal(global_step, slow_start_step_size),
+                          lambda: self.min_lr + (self.max_lr - self.min_lr) / slow_start_step_size * global_step,
                           lambda: (max_lr - min_lr) / const_2 * (tf.cos(cos_inner) + const_1) + min_lr)
 
     def _train_step(self, graph, sess):
@@ -79,31 +65,27 @@ class TrainHandler:
         should_continue = True if global_step <= self.max_step else False
         while should_continue:
             start_time = time.time()
-            _, batch_loss, globaal_step, lr = sess.run([self.optm_op, self.loss, self.global_step, self.lr])
+            _, batch_loss, global_step, lr = sess.run([self.train_op, self.loss, self.global_step, self.lr])
             elapsed = time.time() - start_time
 
             # check if loss value is nan or inf
             should_terminate = isnan(batch_loss) or isinf(batch_loss)
 
-            if not global_step % self.log_print_interval or not global_step % self.cycle_step_size:
+            is_at_lr_transition = True if global_step % self.cycle_step_size in [1, 0] else False
+
+            if not global_step % self.log_print_interval:
                 print('step=%d(%.3f sec/step), total loss=%.3f, lr=%.9f' % (global_step, elapsed, batch_loss, lr))
 
-            if not global_step % self.ckpt_save_interval or not global_step % self.cycle_step_size:
+            if not global_step % self.ckpt_save_interval or is_at_lr_transition:
                 self.saver.save(sess, self.ckpt_dir + "/" + "model_step", global_step, write_meta_graph=False)
-
-            if not global_step % self.summary_save_interval or not global_step % self.cycle_step_size:
+            #
+            if not global_step % self.summary_save_interval or is_at_lr_transition:
                 summary_writer.add_summary(sess.run(summary_op), global_step)
-
+            #
             if should_terminate:
                 raise ValueError('Model diverged with loss = %s' % batch_loss)
 
             should_continue = True if global_step <= self.max_step else False
-
-            # todo: need to initialize data pipeline?
-
-            if len(set(divmod(global_step, self.cycle_step_size))) == 1:  # if global_step reached to the end of cycle
-                print("learning rate is initialized")
-        print("Finished!")
 
     def _start_train(self, hvd):
         all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
@@ -112,6 +94,9 @@ class TrainHandler:
             session_config.gpu_options.allow_growth = True
             session_config.allow_soft_placement = True
             session_config.gpu_options.visible_device_list = str(hvd.local_rank())
+            global_init_fn = tf.global_variables_initializer()
+            local_init_fn = tf.local_variables_initializer()
+            init_fn = tf.group(global_init_fn, local_init_fn)
             with tf.Session(config=session_config) as sess:
                 if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
                     print('=============================== Attention ===============================')
@@ -121,18 +106,13 @@ class TrainHandler:
                     print('The last checkpoint is loaded!')
                     raise ValueError('debug from here')
                 else:
-                    global_init_fn = tf.global_variables_initializer()
-                    local_init_fn = tf.local_variables_initializer()
-                    init_fn = tf.group(global_init_fn, local_init_fn)
-                    sess.run(init_fn)
-                    sess.run(hvd.broadcast_global_variables(0))
+                    sess.run([init_fn])
+                    # sess.run(hvd.broadcast_global_variables(0))
                     print('=============================== Attention ===============================')
                     print('Training will be started from scratch...')
                 self._train_step(graph, sess)
-                print('=============================== Attention ===============================')
-                print('Training is done!')
 
-    def _train_phase(self, hvd):
+    def _train_handler(self, hvd):
         self._miou_loss()
         self.global_step = tf.train.get_or_create_global_step()
         self._get_learning_rate()
@@ -196,5 +176,8 @@ class ModelHandler(Module, TrainHandler):
         print("Deploying model to GPU:%d..." % self.physical_gpu_id)
         with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=fp32_var_getter, use_resource=True, reuse=False):
             self.architecture_fn()
-            self._train_phase(hvd)
-
+            self.saver = tf.train.Saver(max_to_keep=5000)
+            if self.phase == "train":
+                self._train_handler(hvd)
+            else:
+                ValueError("Unexpected phase:%s" % self.phase)

@@ -2,8 +2,8 @@
 Folder structure should be like the below:
 
 dataset/subsets/classes/img.jpg
-ex) ImageNet/_train_phase/fish/fish1.jpg
-    ImageNet/_train_phase/fish/fish2.jpg ...
+ex) ImageNet/_train_handler/fish/fish1.jpg
+    ImageNet/_train_handler/fish/fish2.jpg ...
 
     ImageNet/val/animal/animal1.jpg
     ImageNet/val/animal/animal2.jpg
@@ -22,10 +22,10 @@ import multiprocessing
 from joblib import Parallel, delayed
 
 FLAGS = tf.app.flags.FLAGS
-src_dir = "../../datasets/cat_n_dog/_train_phase"
+src_dir = "../../datasets/cat_n_dog/_train_handler"
 tfrecord_dir = "../../datasets/cat_n_dog/tfrecord"
 
-set_name = "train"  # specify subfolder names such as _train_phase, val, trainval etc.
+set_name = "train"  # specify subfolder names such as _train_handler, val, trainval etc.
 num_shard = 10
 
 

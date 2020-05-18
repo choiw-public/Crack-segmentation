@@ -477,8 +477,11 @@ def fp32_var_getter(getter,
     """Custom variable getter that forces trainable variables to be stored in
     float32 precision and then casts them to the training precision.
     """
-    variable = getter(name, shape, dtype=tf.float32,
-                      initializer=initializer, regularizer=regularizer,
+    variable = getter(name,
+                      shape,
+                      dtype=tf.float32 if trainable else dtype,
+                      initializer=initializer,
+                      regularizer=regularizer,
                       trainable=trainable,
                       *args, **kwargs)
     if trainable and dtype != tf.float32:
