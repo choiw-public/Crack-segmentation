@@ -103,7 +103,7 @@ class TrainHandler:
 
             should_continue = True if global_step <= self.max_step else False
 
-    def _start_train(self, hvd, saver):
+    def _start_train(self, hvd):
         graph = tf.get_default_graph()
         with graph.as_default() as graph:
             global_init_fn = tf.global_variables_initializer()
@@ -113,22 +113,22 @@ class TrainHandler:
             session_config.gpu_options.allow_growth = True
             session_config.allow_soft_placement = True
             session_config.gpu_options.visible_device_list = str(hvd.local_rank())
+            saver = tf.train.Saver(max_to_keep=5000)
             with tf.Session(config=session_config) as sess:
                 all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
-                sess.run(init_fn)
-                sess.run(hvd.broadcast_global_variables(0))
-
                 if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
                     print('=============================== Attention ===============================')
                     print('Training will be continued from the last checkpoint...')
                     saver.restore(sess, all_ckpt_list[-1])
+                    sess.run(hvd.broadcast_global_variables(0))
                     print('The last checkpoint is loaded!')
                 else:
                     print('=============================== Attention ===============================')
                     print('Training will be started from scratch...')
+                    sess.run(init_fn)
                 self._train_step(graph, sess, saver)
 
-    def _train_handler(self, hvd, saver):
+    def _train_handler(self, hvd):
         self._miou_loss()
         self.global_step = tf.train.get_or_create_global_step()
         self._get_learning_rate()
@@ -149,7 +149,7 @@ class TrainHandler:
             # self.train_op = optimizer.minimize(self.loss, global_step=self.global_step)
             self._build_train_op(optimizer)
         self._build_summary_op()
-        self._start_train(hvd, saver)
+        self._start_train(hvd)
 
 
 class ModelHandler(Module, TrainHandler):
@@ -193,8 +193,7 @@ class ModelHandler(Module, TrainHandler):
 
         print("Deploying model to GPU:%d..." % self.physical_gpu_id)
         self.architecture_fn()
-        saver = tf.train.Saver(max_to_keep=5000)
         if self.phase == "train":
-            self._train_handler(hvd, saver)
+            self._train_handler(hvd)
         else:
             ValueError("Unexpected phase:%s" % self.phase)
