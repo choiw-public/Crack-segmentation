@@ -10,9 +10,9 @@ import time
 
 class TrainHandler:
     def _build_summary_op(self):
-        # for index, grad in enumerate(self.grads_and_vars):
-        #     tf.summary.histogram("{}-grad".format(self.grads_and_vars[index][1].name), self.grads_and_vars[index][0])
-        #     tf.summary.histogram(self.grads_and_vars[index][1].name, self.grads_and_vars[index][1])
+        for index, grad in enumerate(self.grads_and_vars):
+            tf.summary.histogram("{}-grad".format(self.grads_and_vars[index][1].name), self.grads_and_vars[index][0])
+            tf.summary.histogram(self.grads_and_vars[index][1].name, self.grads_and_vars[index][1])
         tf.summary.scalar("mIoU loss", self.loss)
         tf.summary.scalar("learning rate", self.lr)
         tf.summary.scalar("batch size", self.batch_size)
@@ -51,11 +51,23 @@ class TrainHandler:
         max_lr = max_lr * (max_lr_decay ** (max_lr_decay_step - const_1))
         cos_inner = (tf.constant(pi, tf.float64) * tf.floormod(global_step - slow_start_step_size, cycle_step_size)) / cycle_step_size
 
-        self.lr = tf.cond(tf.less_equal(global_step, slow_start_step_size),
-                          lambda: self.min_lr + (self.max_lr - self.min_lr) / slow_start_step_size * global_step,
-                          lambda: (max_lr - min_lr) / const_2 * (tf.cos(cos_inner) + const_1) + min_lr)
+        self.lr = tf.cast(tf.cond(tf.less_equal(global_step, slow_start_step_size),
+                                  lambda: self.min_lr + (self.max_lr - self.min_lr) / slow_start_step_size * global_step,
+                                  lambda: (max_lr - min_lr) / const_2 * (tf.cos(cos_inner) + const_1) + min_lr), tf.float32)
 
-    def _train_step(self, graph, sess):
+    def _build_train_op(self, optimizer):
+        self.grads_and_vars = optimizer.compute_gradients(self.loss, var_list=tf.trainable_variables())
+        none_grad_vars = []
+        for grad, var in self.grads_and_vars:
+            if grad is None:
+                none_grad_vars.append(var)
+        if none_grad_vars:
+            for var in none_grad_vars:
+                print(var.name)
+            raise ValueError('The above variables have no gradient')
+        self.train_op = optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
+
+    def _train_step(self, graph, sess, saver):
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(logdir=self.ckpt_dir, graph=graph)
 
@@ -71,48 +83,52 @@ class TrainHandler:
             # check if loss value is nan or inf
             should_terminate = isnan(batch_loss) or isinf(batch_loss)
 
-            is_at_lr_transition = True if global_step % self.cycle_step_size in [1, 0] else False
+            is_at_lr_transition = True if global_step > self.cycle_step_size + self.slow_start_step_size and (
+                    global_step + self.slow_start_step_size) % self.cycle_step_size in [1, 0] else False
 
             if not global_step % self.log_print_interval:
                 print('step=%d(%.3f sec/step), total loss=%.3f, lr=%.9f' % (global_step, elapsed, batch_loss, lr))
 
             if not global_step % self.ckpt_save_interval or is_at_lr_transition:
-                self.saver.save(sess, self.ckpt_dir + "/" + "model_step", global_step, write_meta_graph=False)
+                save_path = self.ckpt_dir + "/" + "model_step"
+                saver.save(sess, save_path, global_step=global_step, write_meta_graph=False)
+                print("model is saved")
             #
             if not global_step % self.summary_save_interval or is_at_lr_transition:
                 summary_writer.add_summary(sess.run(summary_op), global_step)
+                print("summary is saved")
             #
             if should_terminate:
                 raise ValueError('Model diverged with loss = %s' % batch_loss)
 
             should_continue = True if global_step <= self.max_step else False
 
-    def _start_train(self, hvd):
-        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
-        with tf.get_default_graph().as_default() as graph:
+    def _start_train(self, hvd, saver):
+        graph = tf.get_default_graph()
+        with graph.as_default() as graph:
+            global_init_fn = tf.global_variables_initializer()
+            local_init_fn = tf.local_variables_initializer()
+            init_fn = tf.group(global_init_fn, local_init_fn)
             session_config = tf.ConfigProto()
             session_config.gpu_options.allow_growth = True
             session_config.allow_soft_placement = True
             session_config.gpu_options.visible_device_list = str(hvd.local_rank())
-            global_init_fn = tf.global_variables_initializer()
-            local_init_fn = tf.local_variables_initializer()
-            init_fn = tf.group(global_init_fn, local_init_fn)
             with tf.Session(config=session_config) as sess:
+                all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+                sess.run(init_fn)
+                sess.run(hvd.broadcast_global_variables(0))
+
                 if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
                     print('=============================== Attention ===============================')
                     print('Training will be continued from the last checkpoint...')
-                    self.saver.restore(sess, all_ckpt_list[-1])
-                    sess.run(hvd.broadcast_global_variables(0))
+                    saver.restore(sess, all_ckpt_list[-1])
                     print('The last checkpoint is loaded!')
-                    raise ValueError('debug from here')
                 else:
-                    sess.run([init_fn])
-                    # sess.run(hvd.broadcast_global_variables(0))
                     print('=============================== Attention ===============================')
                     print('Training will be started from scratch...')
-                self._train_step(graph, sess)
+                self._train_step(graph, sess, saver)
 
-    def _train_handler(self, hvd):
+    def _train_handler(self, hvd, saver):
         self._miou_loss()
         self.global_step = tf.train.get_or_create_global_step()
         self._get_learning_rate()
@@ -130,9 +146,10 @@ class TrainHandler:
         optimizer = hvd.DistributedOptimizer(optimizer, compression=compression)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.train_op = optimizer.minimize(self.loss, global_step=self.global_step)
+            # self.train_op = optimizer.minimize(self.loss, global_step=self.global_step)
+            self._build_train_op(optimizer)
         self._build_summary_op()
-        self._start_train(hvd)
+        self._start_train(hvd, saver)
 
 
 class ModelHandler(Module, TrainHandler):
@@ -153,20 +170,21 @@ class ModelHandler(Module, TrainHandler):
             raise AttributeError("'config' has no attribute '%s'" % item)
 
     def architecture_fn(self):
-        root = self.convolution(self.input, 5, 1, 16, "root")
-        en1, fp_feature1 = self.squeezing_dense(root, [16, 32], [5, 3], [1, 2], "encoder1")
-        net = self.shortcut(en1, root, 3, 2, get_shape(root)[-1] / 2, "shortcut_concat1")
-        en2, _ = self.squeezing_dense(net, [16, 32, 48], [7, 5, 3], [1, 1, 2], "encoder2", True, 4)
-        en3, fp_feature2 = self.squeezing_dense(en2, [16, 32, 48, 64], [9, 7, 5, 3], [1, 1, 1, 2], "encoder3", True, 4)
-        net = self.shortcut(en3, en2, 3, 2, get_shape(en2)[-1] / 2, "shortcut_concat2")
-        en4, _ = self.squeezing_dense(net, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 2], "encoder4", True, 4)
-        repeat = en4
-        for j in range(4):
-            repeat, _ = self.squeezing_dense(repeat, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 1], "encoder%d" % (j + 5), True, 4)
-        net = self.transpose_conv(repeat, fp_feature2, 4, 4, 24, "upsample1")
-        net = self.convolution(net, 3, 1, 24, "decode1")
-        net = self.transpose_conv(net, fp_feature1, 4, 4, 16, "upsample2")
-        self.logit = self.get_logit(net, 3, 1)
+        with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=fp32_var_getter, use_resource=True, reuse=False):
+            root = self.convolution(self.input, 5, 1, 16, "root")
+            en1, fp_feature1 = self.squeezing_dense(root, [16, 32], [5, 3], [1, 2], "encoder1")
+            net = self.shortcut(en1, root, 3, 2, get_shape(root)[-1] / 2, "shortcut_concat1")
+            en2, _ = self.squeezing_dense(net, [16, 32, 48], [7, 5, 3], [1, 1, 2], "encoder2", True, 4)
+            en3, fp_feature2 = self.squeezing_dense(en2, [16, 32, 48, 64], [9, 7, 5, 3], [1, 1, 1, 2], "encoder3", True, 4)
+            net = self.shortcut(en3, en2, 3, 2, get_shape(en2)[-1] / 2, "shortcut_concat2")
+            en4, _ = self.squeezing_dense(net, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 2], "encoder4", True, 4)
+            repeat = en4
+            for j in range(4):
+                repeat, _ = self.squeezing_dense(repeat, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 1], "encoder%d" % (j + 5), True, 4)
+            net = self.transpose_conv(repeat, fp_feature2, 4, 4, 24, "upsample1")
+            net = self.convolution(net, 3, 1, 24, "decode1")
+            net = self.transpose_conv(net, fp_feature1, 4, 4, 16, "upsample2")
+            self.logit = self.get_logit(net, 3, 1)
 
     def _build_model(self):
         hvd.init()
@@ -174,10 +192,9 @@ class ModelHandler(Module, TrainHandler):
         os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
         print("Deploying model to GPU:%d..." % self.physical_gpu_id)
-        with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=fp32_var_getter, use_resource=True, reuse=False):
-            self.architecture_fn()
-            self.saver = tf.train.Saver(max_to_keep=5000)
-            if self.phase == "train":
-                self._train_handler(hvd)
-            else:
-                ValueError("Unexpected phase:%s" % self.phase)
+        self.architecture_fn()
+        saver = tf.train.Saver(max_to_keep=5000)
+        if self.phase == "train":
+            self._train_handler(hvd, saver)
+        else:
+            ValueError("Unexpected phase:%s" % self.phase)
