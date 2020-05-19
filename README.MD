@@ -2,19 +2,22 @@
 Deep learning models for segmenting erratic shaped objects  
 * Current project: crack segmentation  
 
-#### Demo
+#### Demo - highlight
 * Full demo: https://bit.ly/choiw-fulldemo
-* Crack propagation1:  
-![alt text](demo/Crack_propagation1.gif)
+* Crack-propagation1:  
+![alt text](demo/crack_propagation1.gif)
 
-* Crack propagation2:  
-![alt text](demo/Crack_propagation2.gif)
+* Crack-propagation2:  
+![alt text](demo/crack_propagation2.gif)
 
-* Crack moving shot:  
-![alt text](demo/Crack_moving_shot.gif)
+* Crack-moving shot1:  
+![alt text](demo/crack_moving_shot1.gif)
 
-* Asphalt Moving shot:  
-![alt text](demo/Asphalt_moving_shot.gif)
+* Crack-moving shot2:  
+![alt text](demo/crack_moving_shot2.gif)
+
+* Asphalt-moving shot:  
+![alt text](demo/asphalt_moving_shot.gif)
 
 #### Dependencies
 * Python v3.x  
