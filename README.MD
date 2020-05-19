@@ -4,7 +4,7 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 
 #### Demo - highlight
 * Full demo: https://bit.ly/choiw-fulldemo
-* Crack-propagation1:
+* Crack-propagation1:  
 ![alt text](demo/crack_propagation1.gif)
 
 * Crack-propagation2:  
