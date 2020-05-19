@@ -1,6 +1,6 @@
 # Segment erratic shaped objects
-Deep learning models for segmenting erratic shaped objects  
-* Current project: crack segmentation  
+Deep learning models for segmenting erratic shaped objects. This repository will have more models in future.
+* Current project: crack segmentation
 
 #### Demo - highlight
 * Full demo: https://bit.ly/choiw-fulldemo
@@ -35,10 +35,10 @@ Deep learning models for segmenting erratic shaped objects
 * Shortcut connection (concatenation and addition)
 * half-precision (FP16)
 
-#### Model profile
+#### Model summary
+* Dataset: built from scratch for this side project
+* Architecture: depth-42 (38 downscale and 4 upscale), no pretrained model used 
 * Number of parameters: 2 million
-* Architecture depth: 38 (downscale stream) and 4 (upscale stream)
 
-#### Note for the current state
+#### Note
 The current side project (crack segmentation) is finished in my local workstation. The full code will be disclosed in future.
- 
