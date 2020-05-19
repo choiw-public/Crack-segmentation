@@ -75,22 +75,7 @@ class Module:
             return self.conv_block(tensor_in, kernel_size, stride, out_depth)
 
     def squeezing_dense(self, tensor_in, depths, conv_size, strides, scope, do_gc=False, gc_factor=None):
-        with tf.variable_scope(scope):
-            main_pipe = tensor_in
-            branches = []
-            with tf.variable_scope('denconv'):
-                for i, depth in enumerate(depths):
-                    branches.append(main_pipe)
-                    with tf.variable_scope('invdenconv%02d/pw_conv' % (i + 1)):
-                        main_pipe = tf.concat(branches, 3)
-                        main_pipe = self.conv_block(main_pipe, 1, 1, depth)
-                        if i == len(depths) - 1:
-                            if do_gc:
-                                main_pipe = self.gc_block(main_pipe, gc_factor, scope='gc_main')
-                            decode_feature = main_pipe
-                    with tf.variable_scope('invdenconv%02d/conv' % (i + 1)):
-                        main_pipe = self.conv_block(main_pipe, conv_size[i], strides[i], depth)
-            return main_pipe, decode_feature
+        raise NotImplementedError("Full code will be shared in future")
 
     def shortcut(self, tensor_in, low_level, kernel_size, stride, out_depth, scope):
         with tf.variable_scope(scope):

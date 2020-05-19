@@ -1,4 +1,4 @@
-from functions.project_fn.preprocess_developing import Preprocessing
+from functions.project_fn.preprocess import Preprocessing
 from functions.project_fn.utils import list_getter
 import tensorflow as tf
 import os
@@ -104,12 +104,7 @@ class DataPipeline(Preprocessing):
         if self.phase == "train":
             self._input_from_tfrecord()
         elif self.phase in ["eval", "vis"]:
-            if self.data_type == "image":
-                self._input_from_image()
-            elif self.data_type == "tfrecord":
-                return self._input_from_tfrecord()
-            else:
-                raise ValueError("not supported")
+            self._input_from_image()
 
     def _input_from_image(self):
         def inspect_file_extension(target_list):
@@ -145,4 +140,4 @@ class DataPipeline(Preprocessing):
         dataset = iterator.get_next()
         self.image = dataset["image"]
         self.gt = dataset["gt"]
-        self.init = iterator.initializer
+        self.data_init = iterator.initializer

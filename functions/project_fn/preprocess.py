@@ -35,7 +35,10 @@ class Preprocessing:
 
     @staticmethod
     def draw_grid(im, grid_num):
-        # Draw grid lines
+        """
+        draw_grid lines for visualizing how an image is manipuliated in data augmentation
+
+        """
         grid_size = int(im.shape[1] / grid_num)
         for i in range(0, im.shape[1], grid_size):
             cv.line(im, (i, 0), (i, im.shape[0]), color=(255,))
@@ -45,6 +48,11 @@ class Preprocessing:
 
     @staticmethod
     def _warp(image, gt, prob, ratio, warp_crop_prob):
+        """
+        Change perspective.
+        The function
+
+        """
         if not 0.0 < ratio <= 1.0:
             raise ValueError("warp ratio should be (0.0, 1.0]")
 
@@ -239,7 +247,7 @@ class Preprocessing:
                 split_indices = split_indices[1:] - split_indices[:-1]
                 splitted_image = tf.split(self.image, split_indices, split_axis)
                 splitted_gt = tf.split(self.gt, split_indices, split_axis)
-                pad_size = int(image_shape[split_axis] * self.shift_ratio)
+                pad_size = int(image_shape[split_axis] * self.shred_shift_ratio)
                 padded_image_container = []
                 padded_gt_container = []
                 for strip_image, strip_gt in zip(splitted_image, splitted_gt):
