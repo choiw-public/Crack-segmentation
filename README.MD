@@ -41,4 +41,4 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Number of parameters: 2 million
 
 ### Note
-The current side project (crack segmentation) is finished, and I am organizing the Python script in my local workstation to post it on this repo. The full code will be disclosed in future.
+The current side project (crack segmentation) is finished, and I am organizing the Python script in my local workstation to post on this repo. The full code will be disclosed in future.

@@ -239,37 +239,53 @@ class VisHandler:
         ckpt_pattern = './model/checkpoints/model_step-%d'
         return all_ckpt_list[all_ckpt_list.index(ckpt_pattern % self.ckpt_id)]
 
+    def _superimpose(self, image, pred):
+        mask = np.ones_like(pred) - pred
+        color_label = np.stack([np.zeros_like(pred), np.zeros_like(pred), pred * 255], 2)
+        if self.data_type == "image":
+            return image[:, :, ::-1] * np.expand_dims(mask, 2) + color_label
+        elif self.data_type == "video":
+            return image * np.expand_dims(mask, 2) + color_label
+
     def _vis_with_image(self, sess):
         while True:
             try:
-                img, pred, filename = sess.run([tf.squeeze(self.input_data),
-                                                tf.squeeze(self.pred),
-                                                tf.squeeze(self.filename)])
+                pred, image, filename = sess.run([self.pred,
+                                                  tf.squeeze(self.input_data),
+                                                  tf.squeeze(self.filename)])
                 basename = os.path.basename(filename.decode("utf-8"))
-                mask = np.ones_like(pred) - pred
-                color_label = np.stack([np.zeros_like(pred), np.zeros_like(pred), pred * 255], 2)
-                superimposed = img[:, :, ::-1] * np.expand_dims(mask, 2) + color_label
                 dst_name = self.vis_result_dir + "/" + basename
-                imwrite(dst_name, superimposed)
+                imwrite(dst_name, self._superimpose(image, pred))
             except tf.errors.OutOfRangeError:
                 break
 
     def _vis_with_video(self, sess):
-        # self.img_dir is actually video dir
-        # I tested only avi and mp4 so far
         vid_list = list_getter(self.img_dir, ("avi", "mp4"))
         for vid_name in vid_list:
             vid = VideoCapture(vid_name)
+            fps = round(vid.get(5))
             should_continue, frame = vid.read()
             basename = os.path.basename(vid_name)[:-4]
-            dst_name = self.vis_result_dir + "/" + basename + ".mp4"
+            dst_name = self.vis_result_dir + "/" + basename + ".avi"
+            h, w, _ = frame.shape
+            pred = sess.run(self.pred, {self.input_data: np.expand_dims(frame, 0)})
+            superimposed = self._superimpose(frame, pred)
+            vid_out = VideoWriter(dst_name, VideoWriter_fourcc(*"XVID"), fps, (w, h))
+            vid_out.write(superimposed.astype(np.uint8))
+            while should_continue:
+                should_continue, frame = vid.read()
+                if should_continue:
+                    pred = sess.run(self.pred, {self.input_data: np.expand_dims(frame, 0)})
+                    superimposed = self._superimpose(frame, pred)
+                    vid_out.write(superimposed.astype(np.uint8))
+            vid_out.release()
 
     def _vis_handler(self, sess):
         restorer = tf.train.Saver()
         self.pred = tf.squeeze(tf.argmax(self.logit, 3))
         restorer.restore(sess, self._get_ckpt())
-        sess.run(self.data_init)
         if self.data_type == "image":
+            sess.run(self.data_init)
             self._vis_with_image(sess)
         elif self.data_type == "video":
             self._vis_with_video(sess)
