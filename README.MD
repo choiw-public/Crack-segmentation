@@ -1,4 +1,4 @@
-# Segment erratic shaped objects
+# Erratic shaped object segmentation
 Deep learning models for segmenting erratic shaped objects. This repository will have more models in future.
 * Current project: crack segmentation
 
