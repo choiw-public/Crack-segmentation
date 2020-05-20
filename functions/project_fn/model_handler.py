@@ -1,5 +1,6 @@
-from functions.project_fn.module import Module
 from functions.project_fn.utils import get_shape, list_getter
+from cv2 import VideoCapture, VideoWriter, VideoWriter_fourcc, imwrite
+from functions.project_fn.module import Module
 from math import pi, isnan, isinf
 import horovod.tensorflow as hvd
 import numpy as np
@@ -238,30 +239,53 @@ class VisHandler:
         ckpt_pattern = './model/checkpoints/model_step-%d'
         return all_ckpt_list[all_ckpt_list.index(ckpt_pattern % self.ckpt_id)]
 
-    def _vis_with_image(self):
-        img_list = list_getter(self.data_dir, extension=("jpg", "png"))
-        for img_name in img_list:
-            img = imread(img_name)[:, :, ::-1]
+    def _vis_with_image(self, sess):
+        while True:
+            try:
+                img, pred, filename = sess.run([tf.squeeze(self.input_data),
+                                                tf.squeeze(self.pred),
+                                                tf.squeeze(self.filename)])
+                basename = os.path.basename(filename.decode("utf-8"))
+                mask = np.ones_like(pred) - pred
+                color_label = np.stack([np.zeros_like(pred), np.zeros_like(pred), pred * 255], 2)
+                superimposed = img[:, :, ::-1] * np.expand_dims(mask, 2) + color_label
+                dst_name = self.vis_result_dir + "/" + basename
+                imwrite(dst_name, superimposed)
+            except tf.errors.OutOfRangeError:
+                break
+
+    def _vis_with_video(self, sess):
+        # self.img_dir is actually video dir
+        # I tested only avi and mp4 so far
+        vid_list = list_getter(self.img_dir, ("avi", "mp4"))
+        for vid_name in vid_list:
+            vid = VideoCapture(vid_name)
+            should_continue, frame = vid.read()
+            basename = os.path.basename(vid_name)[:-4]
+            dst_name = self.vis_result_dir + "/" + basename + ".mp4"
 
     def _vis_handler(self, sess):
         restorer = tf.train.Saver()
-        pred = tf.squeeze(tf.argmax(self.logit, 3))
+        self.pred = tf.squeeze(tf.argmax(self.logit, 3))
         restorer.restore(sess, self._get_ckpt())
+        sess.run(self.data_init)
         if self.data_type == "image":
-            self._vis_with_image()
+            self._vis_with_image(sess)
+        elif self.data_type == "video":
+            self._vis_with_video(sess)
+        else:
+            raise ValueError("Unexpected data_type")
 
 
-class ModelHandler(Module, TrainHandler, EvalHandler):
+class ModelHandler(Module, TrainHandler, EvalHandler, VisHandler):
     def __init__(self, data, config):
         self.config = config
         super(ModelHandler, self).__init__()
         self.dtype = tf.float16 if self.dtype == "fp16" else tf.float32
-        self.image = data.image
-        self.input = (tf.cast(self.image, self.dtype) / 127.5 - 1) * 1.3
-        self.gt = data.gt
-
-        if self.phase != "train":
-            self.data_init = data.data_init
+        self.input_data = data.input_data  #
+        self.gt = data.gt  # this will be none in case phase=vis, data_type=video
+        self.filename = data.filename
+        self.data_init = data.data_init
         self._build_model()
 
     def __getattr__(self, item):
@@ -294,8 +318,9 @@ class ModelHandler(Module, TrainHandler, EvalHandler):
         return variable
 
     def architecture_fn(self):
+        normalized_input = (tf.cast(self.input_data, self.dtype) / 127.5 - 1) * 1.3
         with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=self.fp32_var_getter, use_resource=True, reuse=False):
-            root = self.convolution(self.input, 5, 1, 16, "root")
+            root = self.convolution(normalized_input, 5, 1, 16, "root")
             en1, fp_feature1 = self.squeezing_dense(root, [16, 32], [5, 3], [1, 2], "encoder1")
             net = self.shortcut(en1, root, 3, 2, get_shape(root)[-1] / 2, "shortcut_concat1")
             en2, _ = self.squeezing_dense(net, [16, 32, 48], [7, 5, 3], [1, 1, 2], "encoder2", True, 4)
@@ -327,6 +352,6 @@ class ModelHandler(Module, TrainHandler, EvalHandler):
         elif self.phase == "eval":
             self._eval_handler(sess)
         elif self.phase == "vis":
-            raise NotImplementedError
+            self._vis_handler(sess)
         else:
             raise ValueError("Unexpected phase:%s" % self.phase)

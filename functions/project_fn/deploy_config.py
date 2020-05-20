@@ -21,8 +21,8 @@ def deploy(args):
         if phase == "eval":
             config["eval_log_dir"] = "/".join(["./model", "eval_metric"])
             os.makedirs(config["eval_log_dir"], exist_ok=True)
-            config["img_dir"] = config["data_dir"]
         elif phase == "vis":
+            config["img_dir"] = config["data_dir"]
             if config["data_type"] == "image":
                 config["vis_result_dir"] = "/".join(["./model", "vis_results", "image"])
             elif config["data_type"] == "video":
