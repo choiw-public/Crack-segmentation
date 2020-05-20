@@ -34,8 +34,8 @@ class EvalHandler:
             end_idx = None
         else:
             end_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_end) + 1
-        all_ckpt_id = all_ckpt_list[start_idx:end_idx:self.ckpt_step]
-        return [os.path.join(self.ckpt_dir, ckpt_id) for ckpt_id in all_ckpt_id]
+        return all_ckpt_list[start_idx:end_idx:self.ckpt_step]
+        # return [os.path.join(self.ckpt_dir, ckpt_id) for ckpt_id in all_ckpt_id]
 
     def _calculate_segmentation_metric(self):
         tp = np.diag(self.cumulative_cmatrix)
@@ -59,7 +59,7 @@ class EvalHandler:
     def _eval(self, sess, ckpt_id):
         while True:
             try:
-                self.cumulative_cmatrix += sess.run([self.confusion_matrix])
+                self.cumulative_cmatrix += sess.run(self.confusion_matrix)
             except tf.errors.OutOfRangeError:
                 self._calculate_segmentation_metric()
                 self._write_eval_log(ckpt_id)
@@ -73,6 +73,7 @@ class EvalHandler:
                                                     self.num_classes,
                                                     dtype=tf.float32)
         for ckpt in self._get_ckpt_in_range():
+            self._init_log()
             self.cumulative_cmatrix = np.zeros((self.num_classes, self.num_classes))
             ckpt_id = os.path.basename(ckpt)
             if ckpt_id in [row.split(',')[0] for row in self.log[1:]]:
@@ -187,15 +188,14 @@ class TrainHandler:
             local_init_fn = tf.local_variables_initializer()
             init_fn = tf.group(global_init_fn, local_init_fn)
             all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
-            print('=============================== Attention ===============================')
+            sess.run(init_fn)
             if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
                 print('Training will be continued from the last checkpoint...')
                 saver.restore(sess, all_ckpt_list[-1])
-                sess.run(hvd.broadcast_global_variables(0))
                 print('The last checkpoint is loaded!')
             else:
                 print('Training will be started from scratch...')
-                sess.run(init_fn)
+            sess.run(hvd.broadcast_global_variables(0))
             self._train_step(graph, sess, saver)
 
     def _train_handler(self, hvd, sess):
@@ -275,9 +275,9 @@ class ModelHandler(Module, TrainHandler, EvalHandler):
             repeat = en4
             for j in range(4):
                 repeat, _ = self.squeezing_dense(repeat, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 1], "encoder%d" % (j + 5), True, 4)
-            net = self.transpose_conv(repeat, fp_feature2, 4, 4, 24, "upsample1")
+            net = self.upscale(repeat, fp_feature2, 4, 4, 24, "upsample1")
             net = self.convolution(net, 3, 1, 24, "decode1")
-            net = self.transpose_conv(net, fp_feature1, 4, 4, 16, "upsample2")
+            net = self.upscale(net, fp_feature1, 4, 4, 16, "upsample2")
             self.logit = self.get_logit(net, 3, 1)
 
     def _build_model(self):

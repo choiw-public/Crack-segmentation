@@ -82,7 +82,7 @@ class Module:
             low_level = self.conv_block(low_level, kernel_size, stride, out_depth)
             return tf.concat([tensor_in, low_level], 3)
 
-    def transpose_conv(self, tensor_in, fp_feature, kernel_size, stride, out_depth, scope):
+    def upscale(self, tensor_in, fp_feature, kernel_size, stride, out_depth, scope):
         raise NotImplementedError("Full code will be shared in future")
 
     def get_logit(self, tensor_in, kernel_size, stride):

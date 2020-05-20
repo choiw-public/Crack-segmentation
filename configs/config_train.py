@@ -14,25 +14,25 @@ config = {
     "min_lr": 0.000001,
     "max_lr": 0.006,
     "max_lr_decay": 0.9,
-    "max_step": 400000,
+    "max_step": 400001,
     "weight_decay": 0.00001,
 
     # logging
-    "log_print_interval": 1,
-    "ckpt_save_interval": 100,
-    "summary_save_interval": 2000,
+    "log_print_interval": 100,
+    "ckpt_save_interval": 256,
+    "summary_save_interval": 512,
 
     # input
     "dataset_dir": "./datasets/all_newV2_raw_aug/tfrecord",
     "background_dir": "./datasets/background",
     "background_proportion": 0.25,
-    "blur_dir": './datasets/blur/tfrecord',
+    "blur_dir": None,  # './datasets/blur/tfrecord',
     "blur_proportion": 0.25,
-    "batch_size": 42,
+    "batch_size": 2,
 
     # input - augmentation
     "random_scale_range": [0.8, 1.2],  # scale before cropping. None for skipping
-    "crop_size": [513, 513],
+    "crop_size": [384, 384],
     "flip_probability": 0.5,
     "rotate_probability": 0.5,
     "rotate_angle_by90": True,
@@ -55,7 +55,7 @@ config = {
     "shred_shift_ratio": None,
     "shade_prob": 1.0,
     "shade_file": "./shades/shade.tfrecord",
-    "warp_prob": 0.5,  # after 250000
+    "warp_prob": 0.0,  # after 250000
     "warp_ratio": 0.4,
     "warp_crop_prob": 1.0,
     "elastic_distortion_prob": 0.0,  # not recommended for fine features

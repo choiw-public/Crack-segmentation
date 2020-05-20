@@ -123,7 +123,7 @@ class DataPipeline(Preprocessing):
                 if not file1_name == file2_name:
                     raise ValueError("image names are different: %s | %s" % (file2, file1))
 
-        img_list = list_getter(self.img_dir, ("png", "jpg"))
+        img_list = list_getter(self.img_dir, "jpg")
         gt_list = list_getter(self.seg_dir, "png")
         inspect_pairness(gt_list, img_list)
         inspect_file_extension(gt_list)

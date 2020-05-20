@@ -364,6 +364,7 @@ class Preprocessing:
                 self.image.set_shape([self.crop_size[0], self.crop_size[1], 3])
                 self.gt.set_shape([self.crop_size[0], self.crop_size[1]])
                 self.gt = tf.expand_dims(self.gt, 2)
+                # todo: unexpected gt tensor shape. should be fixed
             if self.elastic_distortion_prob > 0.0:
                 self.image = tf.py_func(self.draw_grid, [self.image, 5], tf.float32)  # uncomment to visualize
                 img_gt_pair = tf.concat([self.image, self.gt], 2)
