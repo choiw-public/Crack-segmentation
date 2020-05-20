@@ -33,7 +33,7 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Global attention block
 * Bottleneck layer
 * Shortcut connection (concatenation and addition)
-* half-precision (FP16)
+* Half-precision (FP16)
 
 ### Model summary
 * Dataset: built from scratch for this side project

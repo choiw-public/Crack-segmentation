@@ -24,7 +24,7 @@ class Module:
             main_pipe = tf.nn.elu(main_pipe)
             return main_pipe
 
-        if self.efficient:
+        if self.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -36,7 +36,7 @@ class Module:
             main_pipe = tf.nn.elu(main_pipe)
             return main_pipe
 
-        if self.efficient:
+        if self.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -66,7 +66,7 @@ class Module:
                         transform = tf.nn.sigmoid(transform)
                 return main_pipe + transform
 
-        if self.efficient:
+        if self.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -92,6 +92,6 @@ class Module:
             return main_pipe
 
         with tf.variable_scope('get_logit'):
-            if self.efficient:
+            if self.is_train:
                 build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)

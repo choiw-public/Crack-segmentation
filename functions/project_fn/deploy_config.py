@@ -12,24 +12,24 @@ def deploy(args):
     if phase == "train":
         config["is_train"] = True
         os.makedirs(config["ckpt_dir"], exist_ok=True)
-    elif phase == "eval":
+    else:
         config["is_train"] = False
-        config["efficient"] = False
-        config["weight_decay"] = None
         config["blur_dir"] = None
         config["background_dir"] = None
-        config["bnorm_trainable"] = None
         config["eval_log_dir"] = "/".join(["./model", "eval_metric"])
-        os.makedirs(config["eval_log_dir"], exist_ok=True)
-    elif phase == "vis":
         config["batch_size"] = 1
-        config["efficient"] = False
-        config["is_train"] = False
-        config["weight_decay"] = None
-        config["background_dir"] = None
-        config["bnorm_trainable"] = None
-        config["vis_result_dir"] = "/".join(["./model", "vis_results"])
-        os.makedirs(config["vis_result_dir"], exist_ok=True)
+        if phase == "eval":
+            config["eval_log_dir"] = "/".join(["./model", "eval_metric"])
+            os.makedirs(config["eval_log_dir"], exist_ok=True)
+            config["img_dir"] = config["data_dir"]
+        elif phase == "vis":
+            if config["data_type"] == "image":
+                config["vis_result_dir"] = "/".join(["./model", "vis_results", "image"])
+            elif config["data_type"] == "video":
+                config["vis_result_dir"] = "/".join(["./model", "vis_results", "video"])
+            os.makedirs(config["vis_result_dir"], exist_ok=True)
+        else:
+            raise ValueError('Unexpected phase')
     os.environ["CUDA_VISIBLE_DEVICES"] = str(config["physical_gpu_id"])
     config = Bunch(config)
     return config

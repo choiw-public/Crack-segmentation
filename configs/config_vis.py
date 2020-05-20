@@ -1,13 +1,11 @@
 # visualization Config
 config = {
     "physical_gpu_id": 0,
-    "efficient": True,  # todo: check if this has any impact
-    "dtype": "fp16",
+    "dtype": "fp32",
     "num_classes": 2,
-    "data_type": "tfrecord",
-    "img_dir": "./datasets/all_newV2_raw/img",
-    "dataset_dir": "'./datasets/all_newV2_raw/tfrecord'",
+    "data_type": "image",  # option: image or video
+    "data_dir": "./datasets/all_newV2_raw/img",
     "img_step": 1,
-    "ckpt_id": 1,
+    "ckpt_id": 400000,
     "vis_result_dir": "vis",
 }

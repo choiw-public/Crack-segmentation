@@ -8,84 +8,11 @@ import os
 import time
 
 
-class EvalHandler:
-    def _init_log(self):
-        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
-            writer.seek(0)  # python 3, this line must be included. it's a python bug.
-            log = writer.readlines()
-            if not log:
-                if self.num_classes <= 2:
-                    writer.write('ckpt_id, precision, recall, f1, miou\n')
-                else:
-                    writer.write('ckpt_id, miou\n')
-            else:
-                log = [entry.strip() for entry in log]
-        self.log = log
-
-    def _get_ckpt_in_range(self):
-        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
-        ckpt_pattern = './model/checkpoints/model_step-%d'
-        if self.ckpt_start == 'beginning':
-            start_idx = 0
-        else:
-            start_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_start)
-
-        if self.ckpt_end == 'end':
-            end_idx = None
-        else:
-            end_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_end) + 1
-        return all_ckpt_list[start_idx:end_idx:self.ckpt_step]
-        # return [os.path.join(self.ckpt_dir, ckpt_id) for ckpt_id in all_ckpt_id]
-
-    def _calculate_segmentation_metric(self):
-        tp = np.diag(self.cumulative_cmatrix)
-        fp = np.sum(self.cumulative_cmatrix, axis=0) - tp
-        fn = np.sum(self.cumulative_cmatrix, axis=1) - tp
-        precision = tp / (tp + fp)  # precision of each class. [batch, class]
-        recall = tp / (tp + fn)  # recall of each class. [batch, class]
-        f1 = 2 * precision * recall / (precision + recall)
-        iou = tp / (tp + fp + fn)  # iou of each class. [batch, class]
-        miou = iou.mean()  # miou
-        if iou.shape[0] <= 2:
-            self.metrics = [precision[1], recall[1], f1[1], miou]
-        else:
-            self.metrics = [miou]
-
-    def _write_eval_log(self, ckpt_id):
-        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
-            writer.write('%s, ' % ckpt_id)
-            writer.write(', '.join([str(value) for value in self.metrics]) + '\n')
-
-    def _eval(self, sess, ckpt_id):
-        while True:
-            try:
-                self.cumulative_cmatrix += sess.run(self.confusion_matrix)
-            except tf.errors.OutOfRangeError:
-                self._calculate_segmentation_metric()
-                self._write_eval_log(ckpt_id)
-                break
-
-    def _eval_handler(self, sess):
-        restorer = tf.train.Saver()
-        pred = tf.expand_dims(tf.argmax(self.logit, 3), 3)
-        self.confusion_matrix = tf.confusion_matrix(tf.reshape(self.gt, [-1]),
-                                                    tf.reshape(pred, [-1]),
-                                                    self.num_classes,
-                                                    dtype=tf.float32)
-        for ckpt in self._get_ckpt_in_range():
-            self._init_log()
-            self.cumulative_cmatrix = np.zeros((self.num_classes, self.num_classes))
-            ckpt_id = os.path.basename(ckpt)
-            if ckpt_id in [row.split(',')[0] for row in self.log[1:]]:
-                print('Log for the current ckpt (%s) already exsit. This ckpt is skipped' % ckpt_id)
-            else:
-                print('Current ckpt: %s' % ckpt)
-                restorer.restore(sess, ckpt)
-                sess.run(self.data_init)
-                self._eval(sess, ckpt_id)
-
-
 class TrainHandler:
+    """
+    a parent class of ModelHandler
+    """
+
     def _build_summary_op(self):
         for index, grad in enumerate(self.grads_and_vars):
             tf.summary.histogram("{}-grad".format(self.grads_and_vars[index][1].name), self.grads_and_vars[index][0])
@@ -219,6 +146,109 @@ class TrainHandler:
             self._build_train_op(optimizer)
         self._build_summary_op()
         self._start_train(hvd, sess)
+
+
+class EvalHandler:
+    """
+    a parent class of ModelHandler
+    """
+
+    def _init_log(self):
+        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
+            writer.seek(0)  # python 3, this line must be included. it's a python bug.
+            log = writer.readlines()
+            if not log:
+                if self.num_classes <= 2:
+                    writer.write('ckpt_id, precision, recall, f1, miou\n')
+                else:
+                    writer.write('ckpt_id, miou\n')
+            else:
+                log = [entry.strip() for entry in log]
+        self.log = log
+
+    def _get_ckpt_in_range(self):
+        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+        ckpt_pattern = './model/checkpoints/model_step-%d'
+        if self.ckpt_start == 'beginning':
+            start_idx = 0
+        else:
+            start_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_start)
+
+        if self.ckpt_end == 'end':
+            end_idx = None
+        else:
+            end_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_end) + 1
+        return all_ckpt_list[start_idx:end_idx:self.ckpt_step]
+
+    def _calculate_segmentation_metric(self):
+        tp = np.diag(self.cumulative_cmatrix)
+        fp = np.sum(self.cumulative_cmatrix, axis=0) - tp
+        fn = np.sum(self.cumulative_cmatrix, axis=1) - tp
+        precision = tp / (tp + fp)  # precision of each class. [batch, class]
+        recall = tp / (tp + fn)  # recall of each class. [batch, class]
+        f1 = 2 * precision * recall / (precision + recall)
+        iou = tp / (tp + fp + fn)  # iou of each class. [batch, class]
+        miou = iou.mean()  # miou
+        if iou.shape[0] <= 2:
+            self.metrics = [precision[1], recall[1], f1[1], miou]
+        else:
+            self.metrics = [miou]
+
+    def _write_eval_log(self, ckpt_id):
+        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
+            writer.write('%s, ' % ckpt_id)
+            writer.write(', '.join([str(value) for value in self.metrics]) + '\n')
+
+    def _eval(self, sess, ckpt_id):
+        while True:
+            try:
+                self.cumulative_cmatrix += sess.run(self.confusion_matrix)
+            except tf.errors.OutOfRangeError:
+                self._calculate_segmentation_metric()
+                self._write_eval_log(ckpt_id)
+                break
+
+    def _eval_handler(self, sess):
+        restorer = tf.train.Saver()
+        pred = tf.expand_dims(tf.argmax(self.logit, 3), 3)
+        self.confusion_matrix = tf.confusion_matrix(tf.reshape(self.gt, [-1]),
+                                                    tf.reshape(pred, [-1]),
+                                                    self.num_classes,
+                                                    dtype=tf.float32)
+        for ckpt in self._get_ckpt_in_range():
+            self._init_log()
+            self.cumulative_cmatrix = np.zeros((self.num_classes, self.num_classes))
+            ckpt_id = os.path.basename(ckpt)
+            if ckpt_id in [row.split(',')[0] for row in self.log[1:]]:
+                print('Log for the current ckpt (%s) already exsit. This ckpt is skipped' % ckpt_id)
+            else:
+                print('Current ckpt: %s' % ckpt)
+                restorer.restore(sess, ckpt)
+                sess.run(self.data_init)
+                self._eval(sess, ckpt_id)
+
+
+class VisHandler:
+    """
+    a parent class of ModelHandler
+    """
+
+    def _get_ckpt(self):
+        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+        ckpt_pattern = './model/checkpoints/model_step-%d'
+        return all_ckpt_list[all_ckpt_list.index(ckpt_pattern % self.ckpt_id)]
+
+    def _vis_with_image(self):
+        img_list = list_getter(self.data_dir, extension=("jpg", "png"))
+        for img_name in img_list:
+            img = imread(img_name)[:, :, ::-1]
+
+    def _vis_handler(self, sess):
+        restorer = tf.train.Saver()
+        pred = tf.squeeze(tf.argmax(self.logit, 3))
+        restorer.restore(sess, self._get_ckpt())
+        if self.data_type == "image":
+            self._vis_with_image()
 
 
 class ModelHandler(Module, TrainHandler, EvalHandler):

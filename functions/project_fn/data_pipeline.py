@@ -1,5 +1,6 @@
 from functions.project_fn.preprocess import Preprocessing
 from functions.project_fn.utils import list_getter
+from cv2 import VideoCapture, VideoWriter, VideoWriter_fourcc
 import tensorflow as tf
 import os
 
@@ -25,24 +26,27 @@ class DataPipeline(Preprocessing):
     def _tfrecord_parser(self, data):
         parsed = tf.parse_single_example(data, self.tfrecord_feature)
         fname = tf.convert_to_tensor(parsed["filename"])
-        self.image = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
-        self.gt = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
-        self.preprocessing()
-        return {"image": self.image, "filename": fname, "gt": self.gt}
+        image = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["image"], channels=3))
+        gt = tf.convert_to_tensor(tf.image.decode_jpeg(parsed["segmentation"], channels=1))
+        image, gt = self.preprocessing(image, gt)
+        return {"image": image, "filename": fname, "gt": gt}
 
-    def _image_parser(self, image_name, gt_name):
+    @staticmethod
+    def _image_gt_parser(image_name, gt_name):
+        image = tf.image.decode_png(tf.read_file(image_name), 3)
+        gt = tf.image.decode_png(tf.read_file(gt_name), 1)
+        return {"image": image, "gt": gt, "filename": image_name}
+
+    def _image_parser(self, image_name):
         self.image = tf.image.decode_png(tf.read_file(image_name), 3)
-        self.gt = tf.image.decode_png(tf.read_file(gt_name), 1)
-        self.preprocessing()
-        return {"image": self.image, "gt": self.gt}
+        return {"image": self.image}
 
     def _get_batch_and_init(self, tfrecord_dir, batch_size):
         tfrecord_list = list_getter(tfrecord_dir, extension="tfrecord")
         if not tfrecord_list:
             raise ValueError("tfrecord does not exist: %s" % tfrecord_dir)
         data = tf.data.TFRecordDataset(tfrecord_list)
-        if self.is_train:
-            data = data.repeat()
+        data = data.repeat()
         data = data.shuffle(batch_size * 10)
         data = data.map(self._tfrecord_parser, 4).batch(batch_size, self._drop_remainder)
         data = data.prefetch(4)  # tf.data_pipeline.experimental.AUTOTUNE
@@ -100,12 +104,6 @@ class DataPipeline(Preprocessing):
             self.image = batch_main["image"]
             self.gt = batch_main["gt"]
 
-    def _build_input_pipeline(self):
-        if self.phase == "train":
-            self._input_from_tfrecord()
-        elif self.phase in ["eval", "vis"]:
-            self._input_from_image()
-
     def _input_from_image(self):
         def inspect_file_extension(target_list):
             extensions = list(set([os.path.basename(img_name).split(".")[-1] for img_name in target_list]))
@@ -124,20 +122,35 @@ class DataPipeline(Preprocessing):
                     raise ValueError("image names are different: %s | %s" % (file2, file1))
 
         img_list = list_getter(self.img_dir, "jpg")
-        gt_list = list_getter(self.seg_dir, "png")
-        inspect_pairness(gt_list, img_list)
-        inspect_file_extension(gt_list)
-        inspect_file_extension(img_list)
-
         img_list = tf.convert_to_tensor(img_list, dtype=tf.string)
-        seg_list = tf.convert_to_tensor(gt_list, dtype=tf.string)
         img_data = tf.data.Dataset.from_tensor_slices(img_list)
-        seg_data = tf.data.Dataset.from_tensor_slices(seg_list)
-        data = tf.data.Dataset.zip((img_data, seg_data))
-        data = data.map(self._image_parser, 4).batch(self.batch_size, False)
+        if self.phase == "eval":
+            gt_list = list_getter(self.seg_dir, "png")
+            inspect_pairness(gt_list, img_list)
+            inspect_file_extension(gt_list)
+            inspect_file_extension(img_list)
+            seg_list = tf.convert_to_tensor(gt_list, dtype=tf.string)
+            seg_data = tf.data.Dataset.from_tensor_slices(seg_list)
+            data = tf.data.Dataset.zip((img_data, seg_data))
+            data = data.map(self._image_gt_parser, 4).batch(self.batch_size, False)
+        else:
+            data = img_data.map(self._image_parser, 4).batch(self.batch_size, False)
         data = data.prefetch(4)  # tf.data_pipeline.experimental.AUTOTUNE
         iterator = data.make_initializable_iterator()
         dataset = iterator.get_next()
         self.image = dataset["image"]
-        self.gt = dataset["gt"]
+        self.gt = dataset["gt"] if self.phase == "eval" else None
         self.data_init = iterator.initializer
+
+    # def _input_from_video(self):
+
+    def _build_input_pipeline(self):
+        if self.phase == "train":
+            self._input_from_tfrecord()
+        elif self.phase == "eval":
+            self._input_from_image()
+        elif self.phase == "vis":
+            if self.data_type == "image":
+                self._input_from_image()
+            elif self.data_type == "video":
+                self._input_from_video()
