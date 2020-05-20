@@ -40,5 +40,6 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Architecture: depth-42 (38 downscale and 4 upscale), no pretrained model used 
 * Number of parameters: 2 million
 
-### Note
-The current side project (crack segmentation) is finished, and I am organizing the Python script in my local workstation to post on this repo. The full code will be disclosed in future.
+### Todo
+- [ ] Upload frozen model
+
