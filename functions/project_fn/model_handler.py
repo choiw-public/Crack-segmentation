@@ -187,14 +187,13 @@ class TrainHandler:
             local_init_fn = tf.local_variables_initializer()
             init_fn = tf.group(global_init_fn, local_init_fn)
             all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+            print('=============================== Attention ===============================')
             if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
-                print('=============================== Attention ===============================')
                 print('Training will be continued from the last checkpoint...')
                 saver.restore(sess, all_ckpt_list[-1])
                 sess.run(hvd.broadcast_global_variables(0))
                 print('The last checkpoint is loaded!')
             else:
-                print('=============================== Attention ===============================')
                 print('Training will be started from scratch...')
                 sess.run(init_fn)
             self._train_step(graph, sess, saver)
@@ -263,7 +262,7 @@ class ModelHandler(Module, TrainHandler):
         return variable
 
     def architecture_fn(self):
-        with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=fp32_var_getter, use_resource=True, reuse=False):
+        with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=self.fp32_var_getter, use_resource=True, reuse=False):
             root = self.convolution(self.input, 5, 1, 16, "root")
             en1, fp_feature1 = self.squeezing_dense(root, [16, 32], [5, 3], [1, 2], "encoder1")
             net = self.shortcut(en1, root, 3, 2, get_shape(root)[-1] / 2, "shortcut_concat1")

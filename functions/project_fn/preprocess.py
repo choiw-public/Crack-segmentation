@@ -376,27 +376,3 @@ class Preprocessing:
                 self.gt = img_gt_pair[:, :, 3]
                 self.gt.set_shape([self.crop_size[0], self.crop_size[1]])
                 self.gt = tf.expand_dims(self.gt, 2)
-
-    def normalize_input(self, input_tensor, scale=1.3):
-        # set pixel values from 0 to 1
-        # return tf.cast(input_tensor, tf.float32) / 255.0
-        if scale != 1.0:
-            return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * scale
-        else:
-            return tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1
-
-    def normalize_input2(self, input_tensor):
-        # set pixel values from 0 to 1
-        # return tf.cast(input_tensor, tf.float32) / 255.0
-        return (tf.cast(input_tensor, input_tensor.dtype) / 127.5 - 1) * 1.0
-
-    def normalize_input3(self, input_tensor):
-        b, h, w, c = get_shape(input_tensor)
-        mean = [0.485, 0.456, 0.406]
-        mean = np.expand_dims(np.expand_dims(mean, 0), 0)
-        mean = tf.constant(np.stack([mean] * b, 0), tf.float32)
-        std = [0.229, 0.224, 0.225]
-        std = np.expand_dims(np.expand_dims(std, 0), 0)
-        std = tf.constant(np.stack([std] * b, 0), tf.float32)
-        normalized = (input_tensor / 255.0 - mean) / std
-        return normalized
