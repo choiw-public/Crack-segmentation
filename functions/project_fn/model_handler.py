@@ -1,6 +1,5 @@
-from functions.project_fn.module_abs import Module
-from functions.project_fn.utils import get_tensor_shape as get_shape
-from functions.project_fn.utils import list_getter
+from functions.project_fn.module import Module
+from functions.project_fn.utils import get_shape, list_getter
 from math import pi, isnan, isinf
 import horovod.tensorflow as hvd
 import numpy as np
@@ -25,15 +24,16 @@ class EvalHandler:
 
     def _get_ckpt_in_range(self):
         all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+        ckpt_pattern = './model/checkpoints/model_step-%d'
         if self.ckpt_start == 'beginning':
             start_idx = 0
         else:
-            start_idx = all_ckpt_list.index('model_step-%d' % self.ckpt_start)
+            start_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_start)
 
         if self.ckpt_end == 'end':
             end_idx = None
         else:
-            end_idx = self.index('model_step-%d' % self.ckpt_end) + 1
+            end_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_end) + 1
         all_ckpt_id = all_ckpt_list[start_idx:end_idx:self.ckpt_step]
         return [os.path.join(self.ckpt_dir, ckpt_id) for ckpt_id in all_ckpt_id]
 
@@ -67,7 +67,7 @@ class EvalHandler:
 
     def _eval_handler(self, sess):
         restorer = tf.train.Saver()
-        pred = tf.expand_dims(tf.argmax(self.logits, 3), 3)
+        pred = tf.expand_dims(tf.argmax(self.logit, 3), 3)
         self.confusion_matrix = tf.confusion_matrix(tf.reshape(self.gt, [-1]),
                                                     tf.reshape(pred, [-1]),
                                                     self.num_classes,
@@ -95,7 +95,7 @@ class TrainHandler:
 
     def _miou_loss(self):
         # calculated bache mean intersection over union loss
-        if self.dtype == "fp16":
+        if self.dtype == tf.float16:
             logit = tf.cast(self.logit, tf.float32)
         else:
             logit = self.logit
@@ -204,12 +204,12 @@ class TrainHandler:
         self._get_learning_rate()
         optimizer = tf.train.MomentumOptimizer(learning_rate=self.lr, momentum=0.9)
 
-        if self.dtype == "fp16":
+        if self.dtype == tf.float16:
             loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(128, 100)
             # Wraps the original optimizer in a LossScaleOptimizer.
             optimizer = tf.contrib.mixed_precision.LossScaleOptimizer(optimizer, loss_scale_manager)
             compression = hvd.Compression.fp16
-        elif self.dtype == "fp32":
+        elif self.dtype == tf.float32:
             compression = hvd.Compression.none
         else:
             raise ValueError('unexpected dtype')
@@ -221,15 +221,17 @@ class TrainHandler:
         self._start_train(hvd, sess)
 
 
-class ModelHandler(Module, TrainHandler):
+class ModelHandler(Module, TrainHandler, EvalHandler):
     def __init__(self, data, config):
         self.config = config
         super(ModelHandler, self).__init__()
+        self.dtype = tf.float16 if self.dtype == "fp16" else tf.float32
         self.image = data.image
         self.input = (tf.cast(self.image, self.dtype) / 127.5 - 1) * 1.3
         self.gt = data.gt
+
         if self.phase != "train":
-            self.data_init = data.init
+            self.data_init = data.data_init
         self._build_model()
 
     def __getattr__(self, item):

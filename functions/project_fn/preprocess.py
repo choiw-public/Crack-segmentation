@@ -1,4 +1,4 @@
-from functions.project_fn.utils import get_tensor_shape as get_shape
+from functions.project_fn.utils import get_shape as get_shape
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 import tensorflow as tf

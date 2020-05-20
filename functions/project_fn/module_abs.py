@@ -1,4 +1,4 @@
-from functions.project_fn.utils import get_tensor_shape as get_shape
+from functions.project_fn.utils import get_shape as get_shape
 import tensorflow as tf
 
 
@@ -83,14 +83,7 @@ class Module:
             return tf.concat([tensor_in, low_level], 3)
 
     def transpose_conv(self, tensor_in, fp_feature, kernel_size, stride, out_depth, scope):
-        out_shape = get_shape(fp_feature)
-        out_shape[-1] = out_depth
-        with tf.variable_scope(scope):
-            with tf.variable_scope('conv_transpose'):
-                main_pipe = self.transpose_conv_block(tensor_in, kernel_size, stride, out_depth, out_shape)
-            with tf.variable_scope('shortcut_res'):
-                main_pipe += self.conv_block(fp_feature, 1, 1, get_shape(main_pipe)[-1])
-        return main_pipe
+        raise NotImplementedError("Full code will be shared in future")
 
     def get_logit(self, tensor_in, kernel_size, stride):
         def build(main_pipe):

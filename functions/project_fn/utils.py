@@ -6,7 +6,7 @@ import os
 import re
 
 
-def get_tensor_shape(tensor):
+def get_shape(tensor):
     _static_shape = tensor.get_shape().as_list()
     _dynamic_shape = unstack(shape(tensor))
     _dims = [s[1] if s[0] is None else s[0] for s in zip(_static_shape, _dynamic_shape)]
