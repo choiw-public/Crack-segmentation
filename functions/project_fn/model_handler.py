@@ -1,4 +1,4 @@
-from functions.project_fn.module import Module
+from functions.project_fn.module_abs import Module
 from functions.project_fn.utils import get_tensor_shape as get_shape
 from functions.project_fn.utils import list_getter
 from math import pi, isnan, isinf
