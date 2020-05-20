@@ -2,7 +2,7 @@
 Deep learning models for segmenting erratic shaped objects. This repository will have more models in future.
 * Current project: crack segmentation
 
-#### Demo - highlight
+### Demo - highlight
 * Full demo: https://bit.ly/choiw-fulldemo
 * Crack-propagation1:  
 ![alt text](demo/crack_propagation1.gif)
@@ -19,7 +19,7 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Asphalt-moving shot:  
 ![alt text](demo/asphalt_moving_shot.gif)
 
-#### Libraries
+### Libraries
 * Python v3.x 
 * Tensorflow v1.15
 * Tensorflow-Probability 0.7.0  
@@ -28,17 +28,17 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Scipy
 * Horovod (https://github.com/horovod/horovod)
 
-#### Key techniques
+### Key techniques
 * Feature pyramid
 * Global attention block
 * Bottleneck layer
 * Shortcut connection (concatenation and addition)
 * half-precision (FP16)
 
-#### Model summary
+### Model summary
 * Dataset: built from scratch for this side project
 * Architecture: depth-42 (38 downscale and 4 upscale), no pretrained model used 
 * Number of parameters: 2 million
 
-#### Note
+### Note
 The current side project (crack segmentation) is finished, and I am organizing the Python script in my local workstation to post it on this repo. The full code will be disclosed in future.
