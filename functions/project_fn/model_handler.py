@@ -337,15 +337,15 @@ class ModelHandler(Module, TrainHandler, EvalHandler, VisHandler):
         normalized_input = (tf.cast(self.input_data, self.dtype) / 127.5 - 1) * 1.3
         with tf.device("/GPU:0"), tf.variable_scope("fp32_var", custom_getter=self.fp32_var_getter, use_resource=True, reuse=False):
             root = self.convolution(normalized_input, 5, 1, 16, "root")
-            en1, fp_feature1 = self.squeezing_dense(root, [16, 32], [5, 3], [1, 2], "encoder1")
+            en1, fp_feature1 = self.down_scale(root, [16, 32], [5, 3], [1, 2], "encoder1")
             net = self.shortcut(en1, root, 3, 2, get_shape(root)[-1] / 2, "shortcut_concat1")
-            en2, _ = self.squeezing_dense(net, [16, 32, 48], [7, 5, 3], [1, 1, 2], "encoder2", True, 4)
-            en3, fp_feature2 = self.squeezing_dense(en2, [16, 32, 48, 64], [9, 7, 5, 3], [1, 1, 1, 2], "encoder3", True, 4)
+            en2, _ = self.down_scale(net, [16, 32, 48], [7, 5, 3], [1, 1, 2], "encoder2", True, 4)
+            en3, fp_feature2 = self.down_scale(en2, [16, 32, 48, 64], [9, 7, 5, 3], [1, 1, 1, 2], "encoder3", True, 4)
             net = self.shortcut(en3, en2, 3, 2, get_shape(en2)[-1] / 2, "shortcut_concat2")
-            en4, _ = self.squeezing_dense(net, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 2], "encoder4", True, 4)
+            en4, _ = self.down_scale(net, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 2], "encoder4", True, 4)
             repeat = en4
             for j in range(4):
-                repeat, _ = self.squeezing_dense(repeat, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 1], "encoder%d" % (j + 5), True, 4)
+                repeat, _ = self.down_scale(repeat, [16, 32, 48, 64, 80], [11, 9, 7, 5, 3], [1, 1, 1, 1, 1], "encoder%d" % (j + 5), True, 4)
             net = self.upscale(repeat, fp_feature2, 4, 4, 24, "upsample1")
             net = self.convolution(net, 3, 1, 24, "decode1")
             net = self.upscale(net, fp_feature1, 4, 4, 16, "upsample2")

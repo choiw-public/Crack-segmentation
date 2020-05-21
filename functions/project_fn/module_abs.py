@@ -74,7 +74,7 @@ class Module:
         with tf.variable_scope(scope):
             return self.conv_block(tensor_in, kernel_size, stride, out_depth)
 
-    def squeezing_dense(self, tensor_in, depths, conv_size, strides, scope, do_gc=False, gc_factor=None):
+    def downscale(self, tensor_in, depths, conv_size, strides, scope, do_gc=False, gc_factor=None):
         raise NotImplementedError("Full code will be shared in future")
 
     def shortcut(self, tensor_in, low_level, kernel_size, stride, out_depth, scope):
