@@ -40,6 +40,3 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 * Architecture: depth-42 (38 downscale and 4 upscale), no pretrained model used 
 * Number of parameters: 2 million
 
-### Todo
-- [ ] Upload frozen model
-

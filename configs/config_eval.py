@@ -7,7 +7,7 @@ config = {
     "ckpt_end": 400000,
     "ckpt_step": 1,
     "img_step": 1,
-    "img_dir": "./datasets/all_newV2_raw/img",
-    "seg_dir": "./datasets/all_newV2_raw/seg",
+    "img_dir": "/media/wooram/data_hdd/00.DL_datasets/00.civil/deepcrack/images/test/jpg",
+    "seg_dir": "/media/wooram/data_hdd/00.DL_datasets/00.civil/deepcrack/segmentations/test",
     "eval_log_dir": "evaluation",
 }
