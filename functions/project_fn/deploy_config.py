@@ -14,8 +14,8 @@ def deploy(args):
         os.makedirs(config["ckpt_dir"], exist_ok=True)
     else:
         config["is_train"] = False
-        config["blur_dir"] = None
-        config["background_dir"] = None
+        config["third_data_dir"] = None
+        config["second_data_dir"] = None
         config["eval_log_dir"] = "/".join(["./model", "eval_metric"])
         config["batch_size"] = 1
         if phase == "eval":

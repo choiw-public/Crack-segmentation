@@ -23,12 +23,12 @@ config = {
     "summary_save_interval": 512,
 
     # input
-    "dataset_dir": "./datasets/all_newV2_raw_aug/tfrecord",
-    "background_dir": "./datasets/background",
-    "background_proportion": 0.25,
-    "blur_dir": None,  # './datasets/blur/tfrecord',
-    "blur_proportion": 0.25,
-    "batch_size": 2,
+    "main_data_dir": None,  # tfrecord_folder
+    "second_data_dir": None,  # tfrecord_folder
+    "second_data_proportion": 0.25,
+    "third_data_dir": None,  # tfrecord_folder
+    "third_data_proportion": 0.25,
+    "batch_size": 48,
 
     # input - augmentation
     "random_scale_range": [0.8, 1.2],  # scale before cropping. None for skipping
@@ -58,5 +58,5 @@ config = {
     "warp_prob": 0.0,  # after 250000
     "warp_ratio": 0.4,
     "warp_crop_prob": 1.0,
-    "elastic_distortion_prob": 0.0,  # not recommended for fine features
+    "elastic_distortion_prob": 0.0,
 }

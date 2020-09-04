@@ -7,7 +7,7 @@ config = {
     "ckpt_end": 400000,
     "ckpt_step": 1,
     "img_step": 1,
-    "img_dir": "/media/wooram/data_hdd/00.DL_datasets/00.civil/deepcrack/images/test/jpg",
-    "seg_dir": "/media/wooram/data_hdd/00.DL_datasets/00.civil/deepcrack/segmentations/test",
+    "img_dir": None,  # folder path of jpg images
+    "seg_dir": None,  # folder path of ground truth
     "eval_log_dir": "evaluation",
 }

@@ -4,7 +4,7 @@ from functions.project_fn.model_handler import ModelHandler
 import argparse
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('--phase', type=str, default='vis', help='options: train, eval, vis')
+argparser.add_argument('--phase', type=str, default='train', help='options: train, eval, vis')
 args = argparser.parse_args()
 
 config = deploy(args)

@@ -4,7 +4,7 @@ config = {
     "dtype": "fp32",
     "num_classes": 2,
     "data_type": "image",  # option: image or video
-    "data_dir": "/media/wooram/data_hdd/00.DL_datasets/00.civil/deepcrack/images/test/jpg",
+    "data_dir": "",  # folder path where jpg/png/avi/mp4 is
     "img_step": 1,
     "ckpt_id": 400000,
     "vis_result_dir": "vis",

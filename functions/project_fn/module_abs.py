@@ -1,4 +1,4 @@
-from functions.project_fn.utils import get_shape as get_shape
+from functions.project_fn.utils import get_shape
 import tensorflow as tf
 
 
@@ -10,8 +10,8 @@ class Module:
         else:
             kernel_shape = [kernel_size, kernel_size, in_channel, kernel_depth]
 
-        if self.weight_decay:
-            regularizer = tf.contrib.layers.l2_regularizer(scale=self.weight_decay)
+        if self.config.weight_decay:
+            regularizer = tf.contrib.layers.l2_regularizer(scale=self.config.weight_decay)
         else:
             regularizer = None
         return tf.get_variable("kernel", kernel_shape, self.dtype, tf.initializers.he_uniform(), regularizer, True)
@@ -20,11 +20,11 @@ class Module:
         def build(main_pipe):
             kernel = self.get_kernel(main_pipe, kernel_size, out_depth)
             main_pipe = tf.nn.conv2d(main_pipe, kernel, [1, stride, stride, 1], "SAME")
-            main_pipe = tf.layers.batch_normalization(main_pipe, training=self.is_train, fused=True)
+            main_pipe = tf.layers.batch_normalization(main_pipe, training=self.config.is_train, fused=True)
             main_pipe = tf.nn.elu(main_pipe)
             return main_pipe
 
-        if self.is_train:
+        if self.config.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -32,11 +32,11 @@ class Module:
         def build(main_pipe):
             kernel = self.get_kernel(main_pipe, kernel_size, out_depth, transpose=True)
             main_pipe = tf.nn.conv2d_transpose(main_pipe, kernel, out_shape, [1, stride, stride, 1], 'SAME')
-            main_pipe = tf.layers.batch_normalization(main_pipe, training=self.is_train, fused=True)
+            main_pipe = tf.layers.batch_normalization(main_pipe, training=self.config.is_train, fused=True)
             main_pipe = tf.nn.elu(main_pipe)
             return main_pipe
 
-        if self.is_train:
+        if self.config.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -66,7 +66,7 @@ class Module:
                         transform = tf.nn.sigmoid(transform)
                 return main_pipe + transform
 
-        if self.is_train:
+        if self.config.is_train:
             build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)
 
@@ -92,6 +92,6 @@ class Module:
             return main_pipe
 
         with tf.variable_scope('get_logit'):
-            if self.is_train:
+            if self.config.is_train:
                 build = tf.contrib.layers.recompute_grad(build)
         return build(tensor_in)

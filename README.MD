@@ -1,5 +1,5 @@
-# Erratic shaped object segmentation
-Deep learning models for segmenting erratic shaped objects. This repository will have more models in future.
+# Crack Segmentation
+Deep learning models for segmenting cracks. This repository will have more models in future.
 * Current project: crack segmentation
 
 ### Demo - highlight
@@ -22,11 +22,12 @@ Deep learning models for segmenting erratic shaped objects. This repository will
 ### Libraries
 * Python v3.x 
 * Tensorflow v1.15
-* Tensorflow-Probability 0.7.0  
+* Tensorflow-Probability 0.7.0
+* Horovod (https://github.com/horovod/horovod)  
 * OpenCV
 * Numpy
 * Scipy
-* Horovod (https://github.com/horovod/horovod)
+
 
 ### Key techniques
 * Feature pyramid

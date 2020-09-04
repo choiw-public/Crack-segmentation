@@ -20,7 +20,7 @@ class TrainHandler:
             tf.summary.histogram(self.grads_and_vars[index][1].name, self.grads_and_vars[index][1])
         tf.summary.scalar("mIoU loss", self.loss)
         tf.summary.scalar("learning rate", self.lr)
-        tf.summary.scalar("batch size", self.batch_size)
+        tf.summary.scalar("batch size", self.config.batch_size)
 
     def _miou_loss(self):
         # calculated bache mean intersection over union loss
@@ -29,7 +29,7 @@ class TrainHandler:
         else:
             logit = self.logit
         prob_map = tf.nn.softmax(logit)
-        onehot_gt = tf.one_hot(tf.cast(tf.squeeze(self.gt, 3), tf.uint8), self.num_classes)
+        onehot_gt = tf.one_hot(tf.cast(tf.squeeze(self.gt, 3), tf.uint8), self.config.num_classes)
 
         # calculate iou loss
         intersection_logit = prob_map * onehot_gt  # [batch, height, width, class]
@@ -43,21 +43,21 @@ class TrainHandler:
         const_0 = tf.constant(0.0, dtype=tf.float64)
         const_1 = tf.constant(1, dtype=tf.float64)
         const_2 = tf.constant(2, dtype=tf.float64)
-        slow_start_step_size = tf.constant(self.slow_start_step_size, tf.float64)
-        cycle_step_size = tf.constant(self.cycle_step_size, tf.float64)
+        slow_start_step_size = tf.constant(self.config.slow_start_step_size, tf.float64)
+        cycle_step_size = tf.constant(self.config.cycle_step_size, tf.float64)
 
-        max_lr = tf.constant(self.max_lr, tf.float64)
-        min_lr = tf.constant(self.min_lr, tf.float64)
+        max_lr = tf.constant(self.config.max_lr, tf.float64)
+        min_lr = tf.constant(self.config.min_lr, tf.float64)
         max_lr_decay_step = tf.cond(tf.less_equal(global_step, slow_start_step_size),
                                     lambda: const_0,
                                     lambda: tf.floor(const_1 + (global_step - slow_start_step_size) / cycle_step_size))
 
-        max_lr_decay = tf.constant(self.max_lr_decay, tf.float64)
+        max_lr_decay = tf.constant(self.config.max_lr_decay, tf.float64)
         max_lr = max_lr * (max_lr_decay ** (max_lr_decay_step - const_1))
         cos_inner = (tf.constant(pi, tf.float64) * tf.floormod(global_step - slow_start_step_size, cycle_step_size)) / cycle_step_size
 
         self.lr = tf.cast(tf.cond(tf.less_equal(global_step, slow_start_step_size),
-                                  lambda: self.min_lr + (self.max_lr - self.min_lr) / slow_start_step_size * global_step,
+                                  lambda: self.config.min_lr + (self.config.max_lr - self.config.min_lr) / slow_start_step_size * global_step,
                                   lambda: (max_lr - min_lr) / const_2 * (tf.cos(cos_inner) + const_1) + min_lr), tf.float32)
 
     def _build_train_op(self, optimizer):
@@ -74,12 +74,12 @@ class TrainHandler:
 
     def _train_step(self, graph, sess, saver):
         summary_op = tf.summary.merge_all()
-        summary_writer = tf.summary.FileWriter(logdir=self.ckpt_dir, graph=graph)
+        summary_writer = tf.summary.FileWriter(logdir=self.config.ckpt_dir, graph=graph)
 
         print('Start training...')
         global_step = sess.run(self.global_step)
 
-        should_continue = True if global_step <= self.max_step else False
+        should_continue = True if global_step <= self.config.max_step else False
         while should_continue:
             start_time = time.time()
             _, batch_loss, global_step, lr = sess.run([self.train_op, self.loss, self.global_step, self.lr])
@@ -88,25 +88,25 @@ class TrainHandler:
             # check if loss value is nan or inf
             should_terminate = isnan(batch_loss) or isinf(batch_loss)
 
-            is_at_lr_transition = True if global_step > self.cycle_step_size + self.slow_start_step_size and (
-                    global_step + self.slow_start_step_size) % self.cycle_step_size in [1, 0] else False
+            is_at_lr_transition = True if global_step > self.config.cycle_step_size + self.config.slow_start_step_size and (
+                    global_step + self.config.slow_start_step_size) % self.config.cycle_step_size in [1, 0] else False
 
-            if not global_step % self.log_print_interval:
+            if not global_step % self.config.log_print_interval:
                 print('step=%d(%.3f sec/step), total loss=%.3f, lr=%.9f' % (global_step, elapsed, batch_loss, lr))
 
-            if not global_step % self.ckpt_save_interval or is_at_lr_transition:
-                save_path = self.ckpt_dir + "/" + "model_step"
+            if not global_step % self.config.ckpt_save_interval or is_at_lr_transition:
+                save_path = self.config.ckpt_dir + "/" + "model_step"
                 saver.save(sess, save_path, global_step=global_step, write_meta_graph=False)
                 print("model is saved")
             #
-            if not global_step % self.summary_save_interval or is_at_lr_transition:
+            if not global_step % self.config.summary_save_interval or is_at_lr_transition:
                 summary_writer.add_summary(sess.run(summary_op), global_step)
                 print("summary is saved")
             #
             if should_terminate:
                 raise ValueError('Model diverged with loss = %s' % batch_loss)
 
-            should_continue = True if global_step <= self.max_step else False
+            should_continue = True if global_step <= self.config.max_step else False
 
     def _start_train(self, hvd, sess):
         graph = tf.get_default_graph()
@@ -115,7 +115,7 @@ class TrainHandler:
             global_init_fn = tf.global_variables_initializer()
             local_init_fn = tf.local_variables_initializer()
             init_fn = tf.group(global_init_fn, local_init_fn)
-            all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+            all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.config.ckpt_dir, 'index')]
             sess.run(init_fn)
             if all_ckpt_list:  # assumed the current model is intended to continue training if latest checkpoint exists
                 print('Training will be continued from the last checkpoint...')
@@ -155,11 +155,11 @@ class EvalHandler:
     """
 
     def _init_log(self):
-        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
+        with open(os.path.join(self.config.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
             writer.seek(0)  # python 3, this line must be included. it's a python bug.
             log = writer.readlines()
             if not log:
-                if self.num_classes <= 2:
+                if self.config.num_classes <= 2:
                     writer.write('ckpt_id, precision, recall, f1, miou\n')
                 else:
                     writer.write('ckpt_id, miou\n')
@@ -168,18 +168,18 @@ class EvalHandler:
         self.log = log
 
     def _get_ckpt_in_range(self):
-        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.config.ckpt_dir, 'index')]
         ckpt_pattern = './model/checkpoints/model_step-%d'
-        if self.ckpt_start == 'beginning':
+        if self.config.ckpt_start == 'beginning':
             start_idx = 0
         else:
-            start_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_start)
+            start_idx = all_ckpt_list.index(ckpt_pattern % self.config.ckpt_start)
 
-        if self.ckpt_end == 'end':
+        if self.config.ckpt_end == 'end':
             end_idx = None
         else:
-            end_idx = all_ckpt_list.index(ckpt_pattern % self.ckpt_end) + 1
-        return all_ckpt_list[start_idx:end_idx:self.ckpt_step]
+            end_idx = all_ckpt_list.index(ckpt_pattern % self.config.ckpt_end) + 1
+        return all_ckpt_list[start_idx:end_idx:self.config.ckpt_step]
 
     def _calculate_segmentation_metric(self):
         tp = np.diag(self.cumulative_cmatrix)
@@ -196,7 +196,7 @@ class EvalHandler:
             self.metrics = [miou]
 
     def _write_eval_log(self, ckpt_id):
-        with open(os.path.join(self.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
+        with open(os.path.join(self.config.eval_log_dir, 'metric_overall.csv'), 'a+') as writer:
             writer.write('%s, ' % ckpt_id)
             writer.write(', '.join([str(value) for value in self.metrics]) + '\n')
 
@@ -214,11 +214,11 @@ class EvalHandler:
         pred = tf.expand_dims(tf.argmax(self.logit, 3), 3)
         self.confusion_matrix = tf.confusion_matrix(tf.reshape(self.gt, [-1]),
                                                     tf.reshape(pred, [-1]),
-                                                    self.num_classes,
+                                                    self.config.num_classes,
                                                     dtype=tf.float32)
         for ckpt in self._get_ckpt_in_range():
             self._init_log()
-            self.cumulative_cmatrix = np.zeros((self.num_classes, self.num_classes))
+            self.cumulative_cmatrix = np.zeros((self.config.num_classes, self.config.num_classes))
             ckpt_id = os.path.basename(ckpt)
             if ckpt_id in [row.split(',')[0] for row in self.log[1:]]:
                 print('Log for the current ckpt (%s) already exsit. This ckpt is skipped' % ckpt_id)
@@ -235,16 +235,16 @@ class VisHandler:
     """
 
     def _get_ckpt(self):
-        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.ckpt_dir, 'index')]
+        all_ckpt_list = [_.split(".index")[0] for _ in list_getter(self.config.ckpt_dir, 'index')]
         ckpt_pattern = './model/checkpoints/model_step-%d'
-        return all_ckpt_list[all_ckpt_list.index(ckpt_pattern % self.ckpt_id)]
+        return all_ckpt_list[all_ckpt_list.index(ckpt_pattern % self.config.ckpt_id)]
 
     def _superimpose(self, image, pred):
         mask = np.ones_like(pred) - pred
         color_label = np.stack([np.zeros_like(pred), np.zeros_like(pred), pred * 255], 2)
-        if self.data_type == "image":
+        if self.config.data_type == "image":
             return image[:, :, ::-1] * np.expand_dims(mask, 2) + color_label
-        elif self.data_type == "video":
+        elif self.config.data_type == "video":
             return image * np.expand_dims(mask, 2) + color_label
 
     def _vis_with_image(self, sess):
@@ -254,19 +254,19 @@ class VisHandler:
                                                   tf.squeeze(self.input_data),
                                                   tf.squeeze(self.filename)])
                 basename = os.path.basename(filename.decode("utf-8"))
-                dst_name = self.vis_result_dir + "/" + basename
+                dst_name = self.config.vis_result_dir + "/" + basename
                 imwrite(dst_name, self._superimpose(image, pred))
             except tf.errors.OutOfRangeError:
                 break
 
     def _vis_with_video(self, sess):
-        vid_list = list_getter(self.img_dir, ("avi", "mp4"))
+        vid_list = list_getter(self.config.img_dir, ("avi", "mp4"))
         for vid_name in vid_list:
             vid = VideoCapture(vid_name)
             fps = round(vid.get(5))
             should_continue, frame = vid.read()
             basename = os.path.basename(vid_name)[:-4]
-            dst_name = self.vis_result_dir + "/" + basename + ".avi"
+            dst_name = self.config.vis_result_dir + "/" + basename + ".avi"
             h, w, _ = frame.shape
             pred = sess.run(self.pred, {self.input_data: np.expand_dims(frame, 0)})
             superimposed = self._superimpose(frame, pred)
@@ -284,10 +284,10 @@ class VisHandler:
         restorer = tf.train.Saver()
         self.pred = tf.squeeze(tf.argmax(self.logit, 3))
         restorer.restore(sess, self._get_ckpt())
-        if self.data_type == "image":
+        if self.config.data_type == "image":
             sess.run(self.data_init)
             self._vis_with_image(sess)
-        elif self.data_type == "video":
+        elif self.config.data_type == "video":
             self._vis_with_video(sess)
         else:
             raise ValueError("Unexpected data_type")
@@ -297,18 +297,12 @@ class ModelHandler(Module, TrainHandler, EvalHandler, VisHandler):
     def __init__(self, data, config):
         self.config = config
         super(ModelHandler, self).__init__()
-        self.dtype = tf.float16 if self.dtype == "fp16" else tf.float32
+        self.dtype = tf.float16 if self.config.dtype == "fp16" else tf.float32
         self.input_data = data.input_data  #
         self.gt = data.gt  # this will be none in case phase=vis, data_type=video
         self.filename = data.filename
         self.data_init = data.data_init
         self._build_model()
-
-    def __getattr__(self, item):
-        try:
-            return getattr(self.config, item)
-        except AttributeError:
-            raise AttributeError("'config' has no attribute '%s'" % item)
 
     @staticmethod
     def fp32_var_getter(getter,
@@ -356,18 +350,18 @@ class ModelHandler(Module, TrainHandler, EvalHandler, VisHandler):
         # Using the Winograd non-fused algorithms provides a small performance boost.
         os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
-        print("Deploying model to GPU:%d..." % self.physical_gpu_id)
+        print("Deploying model to GPU:%d..." % self.config.physical_gpu_id)
         session_config = tf.ConfigProto()
         session_config.gpu_options.allow_growth = True
         session_config.allow_soft_placement = True
         session_config.gpu_options.visible_device_list = str(hvd.local_rank())
         sess = tf.Session(config=session_config)
         self.architecture_fn()
-        if self.phase == "train":
+        if self.config.phase == "train":
             self._train_handler(hvd, sess)
-        elif self.phase == "eval":
+        elif self.config.phase == "eval":
             self._eval_handler(sess)
-        elif self.phase == "vis":
+        elif self.config.phase == "vis":
             self._vis_handler(sess)
         else:
-            raise ValueError("Unexpected phase:%s" % self.phase)
+            raise ValueError("Unexpected phase:%s" % self.config.phase)

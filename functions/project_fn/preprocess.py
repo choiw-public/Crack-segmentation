@@ -34,14 +34,14 @@ class Preprocessing:
             return out_list
 
     def _get_random_scale(self):
-        if self.random_scale_range[0] < 0:
+        if self.config.random_scale_range[0] < 0:
             raise ValueError("min_scale_factor cannot be nagative value")
-        if self.random_scale_range[0] > self.random_scale_range[1]:
+        if self.config.random_scale_range[0] > self.config.random_scale_range[1]:
             raise ValueError("min_scale_factor must be larger than max_scale_factor")
-        elif self.random_scale_range[0] == self.random_scale_range[0]:
-            return tf.cast(self.random_scale_range[0], tf.float32)
+        elif self.config.random_scale_range[0] == self.config.random_scale_range[0]:
+            return tf.cast(self.config.random_scale_range[0], tf.float32)
         else:
-            return tf.random_uniform([], minval=self.random_scale_range[0], maxval=self.random_scale_range[0])
+            return tf.random_uniform([], minval=self.config.random_scale_range[0], maxval=self.config.random_scale_range[0])
 
     def _randomly_scale_image_and_label(self, image, gt):
         """Randomly scales image and label.
@@ -67,35 +67,35 @@ class Preprocessing:
     def _random_crop(self, image, gt):
         # concat in channel
         image_gt_pair = tf.concat([image, gt], 2)
-        image_gt_pair_cropped = tf.image.random_crop(image_gt_pair, [self.crop_size[0], self.crop_size[1], 4])
+        image_gt_pair_cropped = tf.image.random_crop(image_gt_pair, [self.config.crop_size[0], self.config.crop_size[1], 4])
         image = image_gt_pair_cropped[:, :, :3]
         gt = image_gt_pair_cropped[:, :, 3:]
         return image, gt
 
     def _flip(self, image, gt):
-        do_flip = tf.less_equal(tf.random_uniform([]), self.flip_probability)
+        do_flip = tf.less_equal(tf.random_uniform([]), self.config.flip_probability)
         image = tf.cond(do_flip, lambda: tf.image.flip_left_right(image), lambda: image)
         gt = tf.cond(do_flip, lambda: tf.image.flip_left_right(gt), lambda: gt)
         return image, gt
 
     def _rotate(self, image, gt):
-        on_off = tf.less_equal(tf.random_uniform([]), self.rotate_probability)
-        if self.rotate_angle_by90:
+        on_off = tf.less_equal(tf.random_uniform([]), self.config.rotate_probability)
+        if self.config.rotate_angle_by90:
             rotate_k = tf.random_uniform((), maxval=3, dtype=tf.int32)
             image = tf.cond(on_off, lambda: tf.image.rot90(image, rotate_k), lambda: image)
             gt = tf.cond(on_off, lambda: tf.image.rot90(gt, rotate_k), lambda: gt)
         else:
-            angle = tf.random.uniform((), minval=self.rotate_angle_range[0], maxval=self.rotate_angle_range[1], dtype=tf.float32)
+            angle = tf.random.uniform((), minval=self.config.rotate_angle_range[0], maxval=self.config.rotate_angle_range[1], dtype=tf.float32)
             image = tf.cond(on_off, lambda: tf.contrib.image.rotate(image, angle, interpolation="BILINEAR"))
             gt = tf.cond(on_off, lambda: tf.contrib.image.rotate(gt, angle, interpolation="NEAREST"))
         return image, gt
 
     def _random_quality(self, image):
-        do_quality = tf.less_equal(tf.random_uniform([]), self.random_quality_prob)
+        do_quality = tf.less_equal(tf.random_uniform([]), self.config.random_quality_prob)
         image = tf.cond(do_quality,
-                        lambda: tf.image.random_jpeg_quality(image, self.random_quality[0], self.random_quality[1]),
+                        lambda: tf.image.random_jpeg_quality(image, self.config.random_quality[0], self.config.random_quality[1]),
                         lambda: image)
-        image.set_shape([self.crop_size[0], self.crop_size[1], 3])
+        image.set_shape([self.config.crop_size[0], self.config.crop_size[1], 3])
         return image
 
     def _rgb_permutation(self, image):
@@ -104,33 +104,33 @@ class Preprocessing:
             image = tf.random.shuffle(image)
             return tf.transpose(image, [1, 2, 0])
 
-        do_permutation = tf.less_equal(tf.random_uniform([]), self.rgb_permutation_prob)
+        do_permutation = tf.less_equal(tf.random_uniform([]), self.config.rgb_permutation_prob)
         return tf.cond(do_permutation, lambda: execute_fn(image), lambda: image)
 
     def _random_brightness(self, image):
-        do_brightness = tf.less_equal(tf.random_uniform([]), self.brightness_prob)
-        delta = tf.random_uniform([], maxval=self.brightness_constant)
+        do_brightness = tf.less_equal(tf.random_uniform([]), self.config.brightness_prob)
+        delta = tf.random_uniform([], maxval=self.config.brightness_constant)
         return tf.cond(do_brightness,
                        lambda: tf.image.adjust_brightness(image, delta),
                        lambda: image)
 
     def _random_contrast(self, image):
-        do_contrast = tf.less_equal(tf.random_uniform([]), self.contrast_prob)
-        contrast_factor = tf.random_uniform([], minval=self.contrast_constant[0], maxval=self.contrast_constant[1])
+        do_contrast = tf.less_equal(tf.random_uniform([]), self.config.contrast_prob)
+        contrast_factor = tf.random_uniform([], minval=self.config.contrast_constant[0], maxval=self.config.contrast_constant[1])
         return tf.cond(do_contrast,
                        lambda: tf.image.adjust_contrast(image, contrast_factor),
                        lambda: image)
 
     def _random_hue(self, image):
-        do_hue = tf.less_equal(tf.random_uniform([]), self.hue_prob)
-        delta = tf.random_uniform([], minval=self.hue_constant[0], maxval=self.hue_constant[1])
+        do_hue = tf.less_equal(tf.random_uniform([]), self.config.hue_prob)
+        delta = tf.random_uniform([], minval=self.config.hue_constant[0], maxval=self.config.hue_constant[1])
         return tf.cond(do_hue,
                        lambda: tf.image.adjust_hue(image, delta),
                        lambda: image)
 
     def _random_saturation(self, image):
-        do_saturation = tf.less_equal(tf.random_uniform([]), self.saturation_prob)
-        saturation_factor = tf.random_uniform([], minval=self.saturation_constant[0], maxval=self.saturation_constant[1])
+        do_saturation = tf.less_equal(tf.random_uniform([]), self.config.saturation_prob)
+        saturation_factor = tf.random_uniform([], minval=self.config.saturation_constant[0], maxval=self.config.saturation_constant[1])
         return tf.cond(do_saturation,
                        lambda: tf.image.adjust_saturation(image, saturation_factor),
                        lambda: image)
@@ -142,9 +142,9 @@ class Preprocessing:
             noise = tf.random_normal(shape=tf.shape(image), mean=0.0, stddev=rnd_stddev, dtype=tf.float32)
             return tf.clip_by_value(image + noise, 0.0, 1.0) * 255.0
 
-        do_gaussian_noise = tf.less_equal(tf.random_uniform([]), self.gaussian_noise_prob)
+        do_gaussian_noise = tf.less_equal(tf.random_uniform([]), self.config.gaussian_noise_prob)
         return tf.cond(do_gaussian_noise,
-                       lambda: execute_fn(image, self.gaussian_noise_std),
+                       lambda: execute_fn(image, self.config.gaussian_noise_std),
                        lambda: image)
 
     def _random_shred(self, image, gt):
@@ -159,7 +159,7 @@ class Preprocessing:
                 split_indices = split_indices[1:] - split_indices[:-1]
                 splitted_image = tf.split(image, split_indices, split_axis)
                 splitted_gt = tf.split(gt, split_indices, split_axis)
-                pad_size = int(image_shape[split_axis] * self.shred_shift_ratio)
+                pad_size = int(image_shape[split_axis] * self.config.shred_shift_ratio)
                 padded_image_container = []
                 padded_gt_container = []
                 for strip_image, strip_gt in zip(splitted_image, splitted_gt):
@@ -180,9 +180,9 @@ class Preprocessing:
                 shredded_gt.set_shape(gt_shape)
                 return shredded_image, shredded_gt
 
-        do_shred = tf.less_equal(tf.random_uniform([]), self.shred_prob)
+        do_shred = tf.less_equal(tf.random_uniform([]), self.config.shred_prob)
         return tf.cond(do_shred,
-                       lambda: execute_fn(image, gt, self.shred_piece_range),
+                       lambda: execute_fn(image, gt, self.config.shred_piece_range),
                        lambda: image)
 
     def _random_shade(self, image):
@@ -231,8 +231,8 @@ class Preprocessing:
             shade = tf.where(tf.equal(shade, 0), case_true, case_false)
             return tf.multiply(tf.cast(image, tf.float32), shade)
 
-        shade_src = shade_pipeline(self.shade_file)
-        do_shade = tf.less_equal(tf.random_uniform([]), self.shade_prob)
+        shade_src = shade_pipeline(self.config.shade_file)
+        do_shade = tf.less_equal(tf.random_uniform([]), self.config.shade_prob)
         return tf.cond(do_shade, lambda: execute_fn(shade_src, image), lambda: image)
 
     @staticmethod
@@ -333,52 +333,52 @@ class Preprocessing:
             raise ValueError("gt should not be none in training")
 
             # Data augmentation by randomly scaling the inputs.
-        if self.random_scale_range != [1.0, 1.0] and self.random_scale_range is not None:
+        if self.config.random_scale_range != [1.0, 1.0] and self.config.random_scale_range is not None:
             image, gt = self._randomly_scale_image_and_label(image, gt)
 
         image, gt = self._fp32([image, gt])
         image, gt = self._random_crop(image, gt)
 
-        if self.flip_probability > 0:
+        if self.config.flip_probability > 0:
             image, gt = self._flip(image, gt)
-        if self.rotate_probability > 0:
+        if self.config.rotate_probability > 0:
             image, gt = self._rotate(image, gt)
-        if self.random_quality_prob > 0.0:
+        if self.config.random_quality_prob > 0.0:
             image = self._random_quality(image)
-        if self.rgb_permutation_prob > 0.0:
+        if self.config.rgb_permutation_prob > 0.0:
             image = self._rgb_permutation(image)
-        if self.brightness_prob > 0.0:
+        if self.config.brightness_prob > 0.0:
             image = self._random_brightness(image)
-        if self.contrast_prob > 0.0:
+        if self.config.contrast_prob > 0.0:
             image = self._random_contrast(image)
-        if self.hue_prob > 0.0:
+        if self.config.hue_prob > 0.0:
             image = self._random_hue(image)
-        if self.saturation_prob > 0.0:
+        if self.config.saturation_prob > 0.0:
             image = self._random_saturation(image)
-        if self.gaussian_noise_prob > 0.0:
+        if self.config.gaussian_noise_prob > 0.0:
             image = self._random_gaussian_noise(image)
-        if self.shred_prob > 0.0:
+        if self.config.shred_prob > 0.0:
             image, gt = self._random_shred(image, gt)
-        if self.shade_prob > 0.0:
+        if self.config.shade_prob > 0.0:
             image = self._random_shade(image)
-        if self.warp_prob > 0.0:
+        if self.config.warp_prob > 0.0:
             image, gt = tf.py_func(self._warp,
-                                   [image, gt, self.warp_prob, self.warp_ratio, self.warp_crop_prob],
+                                   [image, gt, self.config.warp_prob, self.config.warp_ratio, self.config.warp_crop_prob],
                                    [tf.float32, tf.float32])
-            image.set_shape([self.crop_size[0], self.crop_size[1], 3])
-            gt.set_shape([self.crop_size[0], self.crop_size[1]])
+            image.set_shape([self.config.crop_size[0], self.config.crop_size[1], 3])
+            gt.set_shape([self.config.crop_size[0], self.config.crop_size[1]])
             gt = tf.expand_dims(gt, 2)
             # todo: unexpected gt tensor shape. should be fixed
-        if self.elastic_distortion_prob > 0.0:
+        if self.config.elastic_distortion_prob > 0.0:
             image = tf.py_func(self.draw_grid, [image, 5], tf.float32)  # uncomment to visualize
             img_gt_pair = tf.concat([image, gt], 2)
             img_gt_pair = tf.py_func(self.elastic_transform,
-                                     [img_gt_pair, self.elastic_distortion_prob],
+                                     [img_gt_pair, self.config.elastic_distortion_prob],
                                      tf.float32)
 
-            img_gt_pair.set_shape([self.crop_size[0], self.crop_size[1], 4])
+            img_gt_pair.set_shape([self.config.crop_size[0], self.config.crop_size[1], 4])
             image = img_gt_pair[:, :, :3]
             gt = img_gt_pair[:, :, 3]
-            gt.set_shape([self.crop_size[0], self.crop_size[1]])
+            gt.set_shape([self.config.crop_size[0], self.config.crop_size[1]])
             gt = tf.expand_dims(gt, 2)
         return image, gt
