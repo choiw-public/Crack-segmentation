@@ -1,8 +1,7 @@
 # Crack Segmentation
 Deep learning models for segmenting cracks. This repository will have more models in future.
-* Current project: crack segmentation
 
-### Demo - highlight
+### Demo
 * Full demo: https://bit.ly/choiw-fulldemo
 * Crack-propagation1:  
 ![alt text](demo/crack_propagation1.gif)
@@ -25,8 +24,8 @@ Deep learning models for segmenting cracks. This repository will have more model
 * Tensorflow-Probability 0.7.0
 * Horovod (https://github.com/horovod/horovod)  
 * OpenCV
-* Numpy
-* Scipy
+* NumPy
+* SciPy
 
 
 ### Key techniques
