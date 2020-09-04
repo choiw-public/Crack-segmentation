@@ -1,5 +1,5 @@
 # Crack Segmentation
-Deep learning models for segmenting cracks. This repository will have more models in future.
+A deep learning model for segmenting cracks. This repository will have more models in future.
 
 ### Demo
 * Full demo: https://bit.ly/choiw-fulldemo
@@ -29,11 +29,12 @@ Deep learning models for segmenting cracks. This repository will have more model
 
 
 ### Key techniques
+* Half-precision (FP16)
 * Feature pyramid
-* Global attention block
+* Global context block
 * Bottleneck layer
 * Shortcut connection (concatenation and addition)
-* Half-precision (FP16)
+
 
 ### Model summary
 * Dataset: built from scratch for this side project
