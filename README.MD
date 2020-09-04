@@ -20,8 +20,8 @@ A deep learning model for segmenting cracks. This repository will have more mode
 
 ### Libraries
 * Python v3.x 
-* Tensorflow v1.15
-* Tensorflow-Probability 0.7.0
+* TensorFlow v1.15
+* TensorFlow-Probability 0.7.0
 * Horovod (https://github.com/horovod/horovod)  
 * OpenCV
 * NumPy
